@@ -59,7 +59,16 @@ class OpportunityFinder
         $shop = $channels->firstWhere('key', Channel::SHOPIFY);
         $marketplaces = $channels->reject->isShopify();
 
-        $products = Product::with(['variants.channelPrices', 'images:id,product_id'])->withCount('attributeValues')->get();
+        // Kanäle, deren Angebote wir tatsächlich kennen (Marktplatz verbunden und gelesen).
+        $knownListings = [];
+        foreach ($marketplaces as $mpChannel) {
+            $conn = \App\Models\MarketplaceConnection::where('provider', $mpChannel->key)->first();
+            if ($conn?->listings_checked_at) {
+                $knownListings[$mpChannel->id] = true;
+            }
+        }
+
+        $products = Product::with(['variants.channelPrices', 'variants.listings', 'images:id,product_id'])->withCount('attributeValues')->get();
         $out = [];
 
         foreach ($products as $product) {
@@ -81,27 +90,39 @@ class OpportunityFinder
             $mainCost = $main?->cost_net !== null ? (float) $main->cost_net : null;
 
             // 1. Fehlt auf einem Marktplatz
-            if ($hasOrders && $units90 >= self::MIN_UNITS_FOR_CHANNEL_HINT && $product->status === 'ACTIVE') {
-                foreach ($marketplaces as $channel) {
-                    if (($byChannel[$channel->id] ?? 0) > 0) {
-                        continue;
-                    }
-                    $hasOwnPrice = $variants->contains(fn ($v) => $v->channelPrices->contains('channel_id', $channel->id));
-                    $profitThere = $main ? $this->calc->profit($main->priceOn($channel), $mainCost, $channel) : null;
-                    $monthly = $profitThere !== null && $profitThere > 0 ? $units90 / 3 * self::CHANNEL_SHARE_GUESS * $profitThere : null;
-                    $missingGtin = $variants->contains(fn ($v) => blank($v->barcode));
-                    $sold = collect($byChannel)->map(fn ($q, $cid) => ($channels->firstWhere('id', $cid)?->name ?? 'anderen Kanälen').' '.$this->qty($q))->implode(', ');
+            foreach ($marketplaces as $channel) {
+                $listed = $variants->contains(fn ($v) => $v->listings->contains(fn ($l) => $l->channel_id === $channel->id && in_array($l->status, ['active', 'pending'], true)));
+                $errors = $variants->flatMap(fn ($v) => $v->listings->where('channel_id', $channel->id)->where('status', 'error'));
+                if ($errors->isNotEmpty()) {
                     $out[] = new Opportunity(
-                        type: 'missing_channel', kind: Opportunity::FREE,
-                        title: "{$product->title} auf {$channel->name} anbieten",
-                        text: "Verkauft sich in 90 Tagen über {$sold}, auf {$channel->name} gab es keinen Verkauf."
-                            .($hasOwnPrice ? ' Ein Preis für den Kanal ist hinterlegt, Listing prüfen.' : ' Falls der Artikel dort noch nicht gelistet ist: einstellen.')
-                            .($missingGtin ? ' Vorher GTIN ergänzen, Marktplätze verlangen sie.' : ''),
-                        product: $product, channel: $channel, monthlyValue: $monthly, weight: $units90,
-                        actionLabel: 'Preis für '.$channel->name.' prüfen', actionUrl: $url.'?tab=preise',
-                        facts: array_filter(['Gewinn je Verkauf dort' => $profitThere !== null ? Format::money($profitThere) : null]),
+                        type: 'listing_error', kind: Opportunity::FREE,
+                        title: "{$product->title}: Problem mit dem Angebot auf {$channel->name}",
+                        text: \Illuminate\Support\Str::limit((string) $errors->first()->last_error, 220),
+                        product: $product, channel: $channel, weight: 30 + $units90,
+                        actionLabel: 'Marktplätze ansehen', actionUrl: $url.'?tab=marktplaetze',
                     );
                 }
+                $known = isset($knownListings[$channel->id]);
+                $soldThere = ($byChannel[$channel->id] ?? 0) > 0;
+                if ($listed || $soldThere || $product->status !== 'ACTIVE' || ! $hasOrders || $units90 < self::MIN_UNITS_FOR_CHANNEL_HINT) {
+                    continue;
+                }
+                $hasOwnPrice = $variants->contains(fn ($v) => $v->channelPrices->contains('channel_id', $channel->id));
+                $profitThere = $main ? $this->calc->profit($main->priceOn($channel), $mainCost, $channel) : null;
+                $monthly = $profitThere !== null && $profitThere > 0 ? $units90 / 3 * self::CHANNEL_SHARE_GUESS * $profitThere : null;
+                $missingGtin = $variants->contains(fn ($v) => blank($v->barcode));
+                $sold = collect($byChannel)->map(fn ($q, $cid) => ($channels->firstWhere('id', $cid)?->name ?? 'anderen Kanälen').' '.$this->qty($q))->implode(', ');
+                $out[] = new Opportunity(
+                    type: 'missing_channel', kind: Opportunity::FREE,
+                    title: "{$product->title} auf {$channel->name} anbieten",
+                    text: "Verkauft sich in 90 Tagen über {$sold}"
+                        .($known ? ", auf {$channel->name} gibt es kein aktives Angebot." : ", auf {$channel->name} gab es keinen Verkauf.".($hasOwnPrice ? ' Ein Preis für den Kanal ist hinterlegt, Listing prüfen.' : ' Falls der Artikel dort noch nicht gelistet ist: einstellen.'))
+                        .($missingGtin ? ' Vorher GTIN ergänzen, Marktplätze verlangen sie.' : ''),
+                    product: $product, channel: $channel, monthlyValue: $monthly, weight: $units90,
+                    actionLabel: $known ? 'Bei '.$channel->name.' anbieten' : 'Preis für '.$channel->name.' prüfen',
+                    actionUrl: $url.'?tab='.($known ? 'marktplaetze' : 'preise'),
+                    facts: array_filter(['Gewinn je Verkauf dort' => $profitThere !== null ? Format::money($profitThere) : null]),
+                );
             }
 
             // 2. Im Shop nicht aktiv, verkauft sich aber anderswo oder liegt auf Lager
@@ -161,14 +182,15 @@ class OpportunityFinder
                         }
                         $price = $v->priceOn($channel);
                         $profit = $this->calc->profit($price, $cost, $channel);
-                        if ($profit !== null && $profit < self::MIN_PROFIT_PER_SALE) {
+                        $minProfit = (float) \App\Models\Setting::get('opportunities.min_profit', self::MIN_PROFIT_PER_SALE);
+                        if ($profit !== null && $profit < $minProfit) {
                             $monthlyUnits = $q / 3;
                             $out[] = new Opportunity(
                                 type: 'low_profit', kind: Opportunity::FREE,
                                 title: "{$name}: ".($profit < 0 ? 'Verlust' : 'kaum Gewinn')." auf {$channel->name}",
                                 text: 'Bei '.Format::money($price).' bleiben nach EK, Gebühren und Versand '.Format::money($profit).' je Verkauf. In 90 Tagen '.$this->qty($q).' verkauft. Preis mit einem Regelwerk neu rechnen oder Kosten prüfen.',
                                 product: $product, variant: $v, channel: $channel,
-                                monthlyValue: $monthlyUnits * (self::MIN_PROFIT_PER_SALE - $profit),
+                                monthlyValue: $monthlyUnits * ($minProfit - $profit),
                                 actionLabel: 'Preise je Kanal', actionUrl: $url.'?tab=preise',
                                 facts: ['Preis' => Format::money($price), 'Gewinn je Verkauf' => Format::money($profit)],
                             );

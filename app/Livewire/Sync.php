@@ -57,6 +57,21 @@ class Sync extends Component
             : 'Die Bestellungen der letzten 12 Monate werden geholt. Das kann einige Minuten dauern.';
     }
 
+    public function marketplace(string $provider, string $action): void
+    {
+        if (! in_array($provider, \App\Services\Marketplaces\MarketplaceManager::PROVIDERS, true) || ! in_array($action, ['listings', 'prices'], true)) {
+            return;
+        }
+        if ($this->isRunning($action.'_'.$provider)) {
+            $this->notice = 'Läuft bereits.';
+
+            return;
+        }
+        $run = SyncRun::create(['type' => $action.'_'.$provider, 'status' => 'queued', 'stats' => []]);
+        \App\Jobs\SyncMarketplace::dispatch($provider, $action, $run->id);
+        $this->notice = $action === 'prices' ? 'Offene Preise werden übertragen.' : 'Angebote werden eingelesen.';
+    }
+
     public function pushAll(): void
     {
         $ids = Product::where('push_status', Product::STATUS_PENDING)->pluck('id');
@@ -87,6 +102,11 @@ class Sync extends Component
             'lastBillbee' => SyncRun::lastSuccessful(SyncRun::TYPE_BILLBEE),
             'lastOrders' => SyncRun::lastSuccessful(SyncRun::TYPE_BILLBEE_ORDERS),
             'orderCount' => \App\Models\Order::count(),
+            'marketplaces' => collect(\App\Services\Marketplaces\MarketplaceManager::PROVIDERS)->mapWithKeys(fn ($p) => [$p => [
+                'name' => $p === 'ebay' ? 'eBay' : 'Amazon',
+                'connection' => \App\Models\MarketplaceConnection::for($p),
+                'pending' => \App\Models\MarketplaceConnection::for($p)->isConnected() ? app(\App\Services\Marketplaces\MarketplaceManager::class)->pendingPrices($p)->count() : 0,
+            ]]),
             'counts' => Product::selectRaw('push_status, count(*) as n')->groupBy('push_status')->pluck('n', 'push_status'),
         ]);
     }

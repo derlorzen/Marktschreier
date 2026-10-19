@@ -17,7 +17,7 @@
     @if ($total === 0)
         <div class="card empty">
             <h2 style="color:var(--ink)">Noch keine Artikel</h2>
-            <p>Hinterlege unter <a href="{{ route('settings') }}" wire:navigate>Einstellungen</a> den Shopify-Zugang und starte dann unter <a href="{{ route('sync') }}" wire:navigate>Abgleich</a> den ersten Import.</p>
+            <p>Hinterlege unter <a href="{{ route('settings.shopify') }}" wire:navigate>Einstellungen</a> den Shopify-Zugang und starte dann unter <a href="{{ route('sync') }}" wire:navigate>Abgleich</a> den ersten Import.</p>
         </div>
     @else
     <div class="card">

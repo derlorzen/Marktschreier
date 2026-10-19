@@ -1,5 +1,6 @@
 <div class="card card-pad">
     <div class="brand" style="padding:0 0 18px"><span class="brand-mark" aria-hidden="true">M</span> Marktschreier</div>
+    @if (session('flash'))<div class="notice notice-bad small" style="margin-bottom:12px">{{ session('flash') }}</div>@endif
     <form wire:submit="login" class="stack">
         <label class="field">E-Mail
             <input class="input" type="email" wire:model="email" autocomplete="username" autofocus required>

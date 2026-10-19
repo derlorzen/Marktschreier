@@ -34,6 +34,11 @@ class Variant extends Model
         return $this->belongsTo(Product::class);
     }
 
+    public function listings(): HasMany
+    {
+        return $this->hasMany(Listing::class);
+    }
+
     public function channelPrices(): HasMany
     {
         return $this->hasMany(ChannelPrice::class);

@@ -45,6 +45,7 @@ final class Opportunity
     {
         return [
             'missing_channel' => 'Fehlt auf einem Kanal',
+            'listing_error' => 'Problem mit Angebot',
             'shop_inactive' => 'Im Shop nicht aktiv',
             'incomplete' => 'Daten unvollständig',
             'low_profit' => 'Zu wenig Gewinn',

@@ -4,7 +4,7 @@ namespace Tests\Feature;
 
 use App\Livewire\Products\Edit;
 use App\Livewire\Products\Index;
-use App\Livewire\Settings;
+use App\Livewire\Settings\Shopify as ShopifySettings;
 use App\Models\ChangeLog;
 use App\Models\Product;
 use App\Models\Setting;
@@ -146,7 +146,7 @@ class ProductUiTest extends TestCase
 
     public function test_settings_store_secrets_encrypted_and_keep_them_when_left_empty(): void
     {
-        Livewire::test(Settings::class)
+        Livewire::test(ShopifySettings::class)
             ->set('shopifyShop', 'https://Johtomarket.myshopify.com/')
             ->set('shopifyToken', 'shpat_secret')
             ->call('save')->assertHasNoErrors();
@@ -155,7 +155,7 @@ class ProductUiTest extends TestCase
         $this->assertSame('shpat_secret', Setting::get('shopify.token'));
         $this->assertStringNotContainsString('shpat_secret', Setting::where('key', 'shopify.token')->value('value'));
 
-        Livewire::test(Settings::class)->assertSet('shopifyToken', '')->call('save');
+        Livewire::test(ShopifySettings::class)->assertSet('shopifyToken', '')->call('save');
         $this->assertSame('shpat_secret', Setting::get('shopify.token'));
     }
 
@@ -163,6 +163,9 @@ class ProductUiTest extends TestCase
     {
         $this->get('/abgleich')->assertOk()->assertSee('Protokoll');
         $this->get('/einstellungen')->assertOk()->assertSee('Billbee');
+        foreach (['allgemein', 'benutzer', 'zeitplan', 'shopify', 'billbee', 'ebay', 'amazon', 'konto'] as $page) {
+            $this->get('/einstellungen/'.$page)->assertOk();
+        }
         $this->get(route('products.edit', Product::first()).'?tab=verlauf')->assertOk();
     }
 }

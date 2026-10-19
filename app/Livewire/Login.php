@@ -28,12 +28,16 @@ class Login extends Component
         if (RateLimiter::tooManyAttempts($key, 5)) {
             throw ValidationException::withMessages(['email' => 'Zu viele Versuche. Bitte in '.RateLimiter::availableIn($key).' Sekunden erneut versuchen.']);
         }
-        if (! Auth::attempt(['email' => $this->email, 'password' => $this->password], $this->remember)) {
+        if (! Auth::attempt(['email' => $this->email, 'password' => $this->password, 'active' => true], $this->remember)) {
             RateLimiter::hit($key, 60);
             throw ValidationException::withMessages(['email' => 'E-Mail oder Passwort stimmt nicht.']);
         }
         RateLimiter::clear($key);
         session()->regenerate();
+        Auth::user()->forceFill(['last_login_at' => now()])->save();
+        if (Auth::user()->must_change_password) {
+            return $this->redirect(route('settings.account'));
+        }
 
         return $this->redirectIntended(route('dashboard'), navigate: false);
     }

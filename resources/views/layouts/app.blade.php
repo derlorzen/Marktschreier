@@ -21,7 +21,7 @@
         ],
         'System' => [
             ['route' => 'sync', 'match' => 'sync', 'label' => 'Abgleich', 'icon' => 'M4 12a8 8 0 0 1 14-5.3M20 12a8 8 0 0 1-14 5.3M18 3v4h-4M6 21v-4h4'],
-            ['route' => 'settings', 'match' => 'settings', 'label' => 'Einstellungen', 'icon' => 'M12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6ZM19 12l2-1-1-3-2 .3-1.4-1.4.3-2-3-1-1 2h-2l-1-2-3 1 .3 2L5.3 9 3 8.7l-1 3 2 1v2l-2 1 1 3 2-.3 1.4 1.4-.3 2 3 1 1-2h2l1 2 3-1-.3-2 1.4-1.4 2 .3 1-3-2-1Z'],
+            ['route' => auth()->user()?->isAdmin() ? 'settings' : 'settings.account', 'match' => 'settings*', 'label' => auth()->user()?->isAdmin() ? 'Einstellungen' : 'Mein Konto', 'icon' => 'M12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6ZM19 12l2-1-1-3-2 .3-1.4-1.4.3-2-3-1-1 2h-2l-1-2-3 1 .3 2L5.3 9 3 8.7l-1 3 2 1v2l-2 1 1 3 2-.3 1.4 1.4-.3 2 3 1 1-2h2l1 2 3-1-.3-2 1.4-1.4 2 .3 1-3-2-1Z'],
         ],
     ];
     $pending = \App\Models\Product::whereIn('push_status', ['pending', 'error', 'conflict'])->count();
@@ -29,7 +29,8 @@
 <div class="shell">
     <aside class="sidebar">
         <a class="brand" href="{{ route('dashboard') }}" wire:navigate>
-            <span class="brand-mark" aria-hidden="true">M</span> Marktschreier
+            <span class="brand-mark" aria-hidden="true">M</span>
+            <span>Marktschreier @if ($company = \App\Models\Setting::get('general.company'))<span class="brand-sub">{{ $company }}</span>@endif</span>
         </a>
         @foreach ($nav as $section => $items)
             @if ($section !== '')<div class="nav-section">{{ $section }}</div>@endif

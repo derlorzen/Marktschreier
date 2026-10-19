@@ -17,7 +17,7 @@ class DemoSeeder extends Seeder
 {
     public function run(): void
     {
-        User::updateOrCreate(['email' => 'demo@marktschreier.test'], ['name' => 'Demo', 'password' => Hash::make('demo-passwort')]);
+        User::updateOrCreate(['email' => 'demo@marktschreier.test'], ['name' => 'Demo', 'password' => Hash::make('demo-passwort'), 'role' => User::ADMIN]);
 
         $importer = new ProductImporter(new ShopifyClient('demo.myshopify.com', 'x', '2026-10', fn () => null));
         $items = [
@@ -61,6 +61,9 @@ class DemoSeeder extends Seeder
         }
 
         $this->seedOrders();
+        $this->seedMarketplaces();
+        User::updateOrCreate(['email' => 'lea@marktschreier.test'], ['name' => 'Lea', 'password' => Hash::make('demo-passwort'), 'role' => User::STAFF, 'last_login_at' => now()->subDays(2)]);
+        \App\Models\Setting::put('general.company', 'Johto Market');
 
         // Ein paar lokale Änderungen, damit Status und Diff sichtbar sind.
         $p = Product::where('title', 'like', 'Spielmatte%')->first();
@@ -108,6 +111,29 @@ class DemoSeeder extends Seeder
             }
         }
         \App\Models\SyncRun::create(['type' => \App\Models\SyncRun::TYPE_BILLBEE_ORDERS, 'status' => 'ok', 'stats' => ['orders' => $id - 900000], 'message' => 'Beispieldaten', 'started_at' => now(), 'finished_at' => now()]);
+    }
+
+    /** eBay als verbunden darstellen (ohne echte Tokens) und ein paar Angebote anlegen. */
+    private function seedMarketplaces(): void
+    {
+        $c = \App\Models\MarketplaceConnection::for('ebay');
+        $c->storeSecrets(['refresh_token' => 'demo', 'access_token' => 'demo', 'access_expires_at' => time() + 3600]);
+        $c->update(['status' => 'connected', 'connected_at' => now()->subDays(3), 'account_name' => 'johtomarket', 'listings_checked_at' => now()->subMinutes(20)]);
+        $c->putSettings(['fulfillment_policy' => 'demo', 'payment_policy' => 'demo', 'return_policy' => 'demo', 'postal_code' => '20095', 'location' => 'Hamburg', 'condition' => 1000,
+            'policies_cache' => ['fulfillment' => ['demo' => 'DHL Paket 2 Tage'], 'payment' => ['demo' => 'eBay-Zahlungsabwicklung'], 'return' => ['demo' => '30 Tage Rückgabe']]]);
+        $ebay = \App\Models\Channel::where('key', 'ebay')->first();
+        $item = 1000;
+        foreach (Product::with('variants')->orderBy('id')->take(4)->get() as $i => $product) {
+            $item++;
+            foreach ($product->variants as $v) {
+                \App\Models\Listing::create([
+                    'variant_id' => $v->id, 'channel_id' => $ebay->id, 'external_id' => '1460000'.$item, 'sku' => $v->sku,
+                    'status' => $i === 2 ? 'error' : 'active', 'remote_price' => $v->price, 'pushed_price' => $v->price,
+                    'last_error' => $i === 2 ? 'eBay: Die Artikelmerkmale „Marke“ und „Produktart“ fehlen.' : null,
+                    'data' => ['variation' => $product->variants->count() > 1], 'checked_at' => now(),
+                ]);
+            }
+        }
     }
 
     private function checkDigit(string $twelve): int

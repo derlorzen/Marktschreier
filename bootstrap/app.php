@@ -15,6 +15,7 @@ return Application::configure(basePath: dirname(__DIR__))
         // Hinter Coolify/Traefik läuft HTTPS am Proxy.
         $middleware->trustProxies(at: '*');
         $middleware->redirectGuestsTo('/login');
+        $middleware->appendToGroup('web', \App\Http\Middleware\EnsureAccountUsable::class);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
         $exceptions->shouldRenderJsonWhen(

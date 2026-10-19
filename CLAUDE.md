@@ -10,3 +10,5 @@ Laravel 13 + Livewire 4 (Klassen-Komponenten in `app/Livewire`, Views in `resour
 - Tests: `php artisan test`, externe APIs über `Tests\Concerns\FakesApis` (Antwort-Warteschlangen).
 - Preise je Marktplatz liegen in `channel_prices`; ohne Eintrag gilt der Shopify-Preis (`Variant::priceOn`). Regelwerke nie dauerhaft am Artikel speichern.
 - Bestellungen ohne Kundendaten speichern (keine Namen, Adressen, E-Mails).
+- Marktplätze: nie die Menge schreiben (nur Startbestand beim Anlegen). eBay-Angebote über die Trading API, damit Billbee sie weiter pflegen kann.
+- Einstellungen nur für Administratoren (`can:admin`), außer „Mein Konto“.

@@ -227,3 +227,30 @@ textarea.input { min-height: 140px; resize: vertical; line-height: 1.5; }
 .chance-row:hover { background: var(--tint-2); }
 .chance-title { flex: 1; min-width: 0; font-weight: 500; }
 @media (max-width: 700px) { .chance-row { flex-wrap: wrap; } }
+
+/* Einstellungen: Bereichsnavigation links, Inhalt rechts */
+.settings-layout { display: grid; grid-template-columns: 210px minmax(0, 1fr); gap: 24px; align-items: start; }
+.settings-nav { display: flex; flex-direction: column; gap: 2px; position: sticky; top: 16px; }
+.settings-nav a { padding: 7px 10px; border-radius: 8px; color: var(--ink-2); text-decoration: none; font-size: 14px; font-weight: 500; }
+.settings-nav a:hover { background: var(--tint); }
+.settings-nav a[aria-current="page"] { background: var(--surface); color: var(--accent-strong); box-shadow: inset 2px 0 0 var(--accent); }
+.settings-nav-group { font-size: 12px; text-transform: uppercase; letter-spacing: .04em; color: var(--muted); padding: 14px 10px 4px; }
+.settings-content .card + .card { margin-top: 16px; }
+@media (max-width: 860px) {
+  .settings-layout { grid-template-columns: 1fr; }
+  .settings-nav { position: static; flex-direction: row; flex-wrap: wrap; gap: 4px; }
+  .settings-nav-group { display: none; }
+  .settings-nav a { border: 1px solid var(--line); background: var(--surface); }
+}
+.status-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); gap: 12px; }
+.status-tile { display: flex; flex-direction: column; gap: 6px; padding: 14px 16px; border: 1px solid var(--line); border-radius: 12px; background: var(--surface); color: var(--ink); text-decoration: none; }
+.status-tile:hover { border-color: var(--accent); }
+.status-tile h3 { display: flex; align-items: center; gap: 8px; }
+.dot { width: 9px; height: 9px; border-radius: 50%; background: var(--line-2); flex: none; }
+.dot-ok { background: var(--accent); }
+.dot-warn { background: var(--warn); }
+.dot-bad { background: var(--bad); }
+.kv { display: grid; grid-template-columns: max-content 1fr; gap: 6px 16px; margin: 0; font-size: 14px; }
+.kv dt { color: var(--muted); }
+.kv dd { margin: 0; }
+.brand-sub { display: block; font-size: 12px; font-weight: 500; color: var(--muted); }

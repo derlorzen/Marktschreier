@@ -3,7 +3,6 @@
 use App\Livewire\Login;
 use App\Livewire\Products\Edit;
 use App\Livewire\Products\Index;
-use App\Livewire\Settings;
 use App\Livewire\Sync;
 use App\Models\Product;
 use App\Support\OpenTabs;
@@ -43,5 +42,20 @@ Route::middleware('auth')->group(function () {
     Route::livewire('/chancen', \App\Livewire\Opportunities::class)->name('opportunities');
     Route::livewire('/preise', \App\Livewire\Pricing::class)->name('pricing');
     Route::livewire('/abgleich', Sync::class)->name('sync');
-    Route::livewire('/einstellungen', Settings::class)->name('settings');
+    Route::livewire('/einstellungen/konto', \App\Livewire\Settings\Account::class)->name('settings.account');
+
+    Route::middleware('can:admin')->prefix('einstellungen')->group(function () {
+        Route::livewire('/', \App\Livewire\Settings\Overview::class)->name('settings');
+        Route::livewire('/allgemein', \App\Livewire\Settings\General::class)->name('settings.general');
+        Route::livewire('/benutzer', \App\Livewire\Settings\Users::class)->name('settings.users');
+        Route::livewire('/zeitplan', \App\Livewire\Settings\Schedule::class)->name('settings.schedule');
+        Route::livewire('/shopify', \App\Livewire\Settings\Shopify::class)->name('settings.shopify');
+        Route::livewire('/billbee', \App\Livewire\Settings\Billbee::class)->name('settings.billbee');
+        Route::livewire('/ebay', \App\Livewire\Settings\Ebay::class)->name('settings.ebay');
+        Route::livewire('/amazon', \App\Livewire\Settings\Amazon::class)->name('settings.amazon');
+        Route::get('/ebay/verbinden', [\App\Http\Controllers\MarketplaceAuthController::class, 'ebayConnect'])->name('settings.ebay.connect');
+        Route::get('/ebay/rueckkehr', [\App\Http\Controllers\MarketplaceAuthController::class, 'ebayCallback'])->name('settings.ebay.callback');
+        Route::get('/amazon/verbinden', [\App\Http\Controllers\MarketplaceAuthController::class, 'amazonConnect'])->name('settings.amazon.connect');
+        Route::get('/amazon/rueckkehr', [\App\Http\Controllers\MarketplaceAuthController::class, 'amazonCallback'])->name('settings.amazon.callback');
+    });
 });

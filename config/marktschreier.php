@@ -20,9 +20,30 @@ return [
         'cost_price_mode' => env('BILLBEE_COST_PRICE_MODE', 'net'),
         'vat_rate' => (float) env('BILLBEE_DEFAULT_VAT', 19),
     ],
+    // Entwickler-Apps für alle Instanzen gemeinsam. Jeder Kunde verbindet sein eigenes Verkäuferkonto.
+    'ebay' => [
+        'client_id' => env('EBAY_CLIENT_ID'),
+        'client_secret' => env('EBAY_CLIENT_SECRET'),
+        // RuName der App, im eBay-Entwicklerkonto mit der Rücksprung-URL dieser Instanz angelegt
+        'runame' => env('EBAY_RUNAME'),
+        'sandbox' => (bool) env('EBAY_SANDBOX', false),
+        'site_id' => 77,                 // eBay.de
+        'marketplace_id' => 'EBAY_DE',
+        'compatibility_level' => 1349,
+    ],
+    'amazon' => [
+        'app_id' => env('AMAZON_APP_ID'),              // amzn1.sp.solution… bzw. amzn1.sellerapps.app…
+        'client_id' => env('AMAZON_LWA_CLIENT_ID'),
+        'client_secret' => env('AMAZON_LWA_CLIENT_SECRET'),
+        'draft' => (bool) env('AMAZON_APP_DRAFT', true), // Entwurfs-Apps brauchen version=beta
+        'endpoint' => env('AMAZON_SPAPI_ENDPOINT', 'https://sellingpartnerapi-eu.amazon.com'),
+        'seller_central' => env('AMAZON_SELLER_CENTRAL', 'https://sellercentral-europe.amazon.com'),
+        'marketplace_id' => env('AMAZON_MARKETPLACE_ID', 'A1PA6795UKMFR9'), // amazon.de
+    ],
     'sync' => [
         'billbee_interval_minutes' => (int) env('BILLBEE_SYNC_MINUTES', 15),
         'shopify_interval_minutes' => (int) env('SHOPIFY_SYNC_MINUTES', 60),
         'orders_interval_minutes' => (int) env('BILLBEE_ORDERS_MINUTES', 30),
+        'listings_interval_minutes' => (int) env('LISTINGS_SYNC_MINUTES', 60),
     ],
 ];

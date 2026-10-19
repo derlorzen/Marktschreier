@@ -1,7 +1,8 @@
 @php
     $labels = ['products_new' => 'neu', 'products_updated' => 'aktualisiert', 'variants' => 'Varianten', 'conflicts' => 'Konflikte',
         'billbee_products' => 'Billbee-Artikel', 'matched' => 'zugeordnet', 'by_sku' => 'per SKU', 'by_ean' => 'per GTIN', 'unmatched' => 'ohne Treffer', 'ambiguous' => 'SKU doppelt', 'fields' => 'Felder',
-        'orders' => 'Bestellungen', 'items' => 'Positionen', 'items_unmatched' => 'Positionen ohne Artikel', 'orders_without_channel' => 'ohne Kanal'];
+        'orders' => 'Bestellungen', 'items' => 'Positionen', 'items_unmatched' => 'Positionen ohne Artikel', 'orders_without_channel' => 'ohne Kanal',
+        'listings' => 'Angebote', 'checked' => 'geprüft', 'found' => 'gefunden', 'errors' => 'mit Fehler', 'ok' => 'übertragen', 'failed' => 'abgelehnt'];
     $fmt = fn ($d) => $d?->timezone('Europe/Berlin')->format('d.m.Y H:i');
 @endphp
 <div @if ($active) wire:poll.3s @endif>
@@ -23,7 +24,7 @@
                     @if ($lastImport)<button class="btn" wire:click="importShopify(false)" wire:loading.attr="disabled">Änderungen holen</button>@endif
                 </div>
             @else
-                <div class="notice notice-warn small">Noch nicht eingerichtet. <a href="{{ route('settings') }}" wire:navigate>Zu den Einstellungen</a></div>
+                <div class="notice notice-warn small">Noch nicht eingerichtet. <a href="{{ route('settings.shopify') }}" wire:navigate>Zu den Einstellungen</a></div>
             @endif
         </div>
         <div class="card card-pad stack">
@@ -37,7 +38,7 @@
                     <button class="btn" wire:click="syncOrders" wire:loading.attr="disabled">Verkäufe holen</button>
                 </div>
             @else
-                <div class="notice notice-warn small">Noch nicht eingerichtet. <a href="{{ route('settings') }}" wire:navigate>Zu den Einstellungen</a></div>
+                <div class="notice notice-warn small">Noch nicht eingerichtet. <a href="{{ route('settings.billbee') }}" wire:navigate>Zu den Einstellungen</a></div>
             @endif
         </div>
         <div class="card card-pad stack">
@@ -52,6 +53,23 @@
                 <a class="btn" href="{{ route('products.index', ['sync' => 'open']) }}" wire:navigate>Ansehen</a>
             </div>
         </div>
+    </div>
+
+    <div class="grid-2" style="margin-bottom:16px">
+        @foreach ($marketplaces as $key => $m)
+            <div class="card card-pad stack">
+                <h2>{{ $m['name'] }}</h2>
+                @if ($m['connection']->isConnected())
+                    <div class="small">Angebote gelesen: {{ $m['connection']->listings_checked_at ? $fmt($m['connection']->listings_checked_at) : 'noch nicht' }}</div>
+                    <div class="row">
+                        <button class="btn" wire:click="marketplace('{{ $key }}', 'listings')">Angebote lesen</button>
+                        <button class="btn btn-primary" wire:click="marketplace('{{ $key }}', 'prices')" @disabled(! $m['pending'])>{{ $m['pending'] }} offene Preise übertragen</button>
+                    </div>
+                @else
+                    <p class="muted small" style="margin:0">Nicht verbunden. @can('admin')<a href="{{ route('settings.'.$key) }}" wire:navigate>Verbinden</a>@endcan</p>
+                @endif
+            </div>
+        @endforeach
     </div>
 
     <div class="card">

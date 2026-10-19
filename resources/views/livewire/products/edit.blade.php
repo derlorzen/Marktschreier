@@ -4,7 +4,7 @@
     [$syncLabel, $syncClass] = Format::pushStatusBadge($product->push_status);
     $changed = fn (string $field) => array_key_exists($field, $pending['product']);
     $vChanged = fn (int $id, string $field) => array_key_exists($field, $pending['variants'][$id] ?? []);
-    $tabs = ['stamm' => 'Stammdaten', 'varianten' => 'Varianten und Preise', 'preise' => 'Preise je Kanal', 'bilder' => 'Bilder', 'merkmale' => 'Merkmale', 'verlauf' => 'Verlauf'];
+    $tabs = ['stamm' => 'Stammdaten', 'varianten' => 'Varianten und Preise', 'preise' => 'Preise je Kanal', 'marktplaetze' => 'Marktplätze', 'bilder' => 'Bilder', 'merkmale' => 'Merkmale', 'verlauf' => 'Verlauf'];
 @endphp
 <div>
     <x-article-tabs :active="$product->id" />
@@ -249,6 +249,8 @@
                 @endif
             </div>
 
+        @elseif ($tab === 'marktplaetze')
+            <livewire:products.marketplaces :product="$product" :key="'mp'.$product->id" />
         @elseif ($tab === 'bilder')
             @if ($images->isEmpty())
                 <div class="empty">Keine Bilder in Shopify.</div>

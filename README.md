@@ -11,6 +11,10 @@ Schlanke Artikelverwaltung für Shopify-Händler mit Billbee. Stufe 1:
 - **Verkäufe**: Bestellungen aus Billbee (ohne Kundendaten), Umsatz und Gewinn je Kanal und Artikel auf der Startseite.
 - **Chancen**: Regelbasierter Chancenfinder. Ohne Werbebudget: fehlt auf einem Kanal, im Shop nicht aktiv, Daten unvollständig, zu wenig Gewinn, bald ausverkauft, liegt auf Lager. Mit Werbung: Artikel, bei denen sich Anzeigen rechnen, mit Werbekosten-Grenze (Break-even-ACoS), Ziel-ACoS und Startbudget.
 
+- **Marktplätze (eBay, Amazon)**: Angebote lesen und den Varianten zuordnen (über die SKU), Preise je Kanal auf Klick übertragen, neue Angebote anlegen. eBay mit Kategorie, Artikelmerkmalen und Varianten, Amazon als Angebot zu einem vorhandenen Produkt über die GTIN. Die Menge pflegt weiterhin Billbee (bzw. Amazon bei FBA).
+- **Einstellungen**: Übersicht mit Verbindungsstatus, Allgemein, Benutzer, Zeitplan, Shopify, Billbee, eBay, Amazon, Mein Konto.
+- **Benutzer**: Rollen Administrator und Mitarbeiter, Startpasswort mit Pflicht zum Ändern, Sperren statt Löschen, letzter Administrator ist geschützt.
+
 ## Wer schreibt welches Feld
 
 | Feld | führend | Richtung |
@@ -19,7 +23,8 @@ Schlanke Artikelverwaltung für Shopify-Händler mit Billbee. Stufe 1:
 | Preis, Streichpreis, SKU, GTIN | Marktschreier | → Shopify nach Freigabe |
 | Bilder, neue Varianten | Shopify | → Marktschreier (vorerst nur Anzeige) |
 | Einkaufspreis, Bestand, Bestellungen | Billbee | → Marktschreier, nie zurück |
-| Preise je Marktplatz | Marktschreier | vorerst nur hier, Übertragung kommt mit den Marktplatz-Anbindungen |
+| Preise je Marktplatz | Marktschreier | → eBay/Amazon auf Klick, nie automatisch |
+| Menge auf eBay/Amazon | Billbee (FBA: Amazon) | Marktschreier setzt nur den Startbestand beim Anlegen |
 | Merkmale | Marktschreier | bleiben lokal (für spätere Marktplätze) |
 
 Ändern sich dasselbe Feld hier und in Shopify zwischen zwei Abgleichen, bleibt der Wert aus Marktschreier und der Artikel wird als **Konflikt** markiert. Mit „Speichern“ in der Detailansicht gilt er als geprüft.
@@ -77,6 +82,22 @@ Seit 1. Januar 2026 lassen sich im Shopify-Admin keine neuen „Custom Apps“ m
 
 Gibt es bereits eine ältere Custom App mit `shpat_…`-Token, kann stattdessen dieses Token eingetragen werden.
 
+### eBay (eine Entwickler-App für alle Instanzen)
+
+1. Im eBay-Entwicklerkonto (Production Keyset) Client-ID und Client-Secret notieren.
+2. Je Instanz einen RuName anlegen („User Tokens“, „Get a Token from eBay via Your Application“) und als „Your auth accepted URL“ `https://<instanz>/einstellungen/ebay/rueckkehr` eintragen.
+3. `EBAY_CLIENT_ID`, `EBAY_CLIENT_SECRET`, `EBAY_RUNAME` setzen. Der Kunde klickt unter Einstellungen, eBay auf „Mit eBay verbinden“.
+4. Im eBay-Konto des Kunden müssen Geschäftsrichtlinien (Versand, Zahlung, Rücknahme) aktiv sein, sie werden in Marktschreier ausgewählt.
+
+Marktschreier legt Angebote über die Trading API an (nicht über die Inventory API), damit Billbee die Menge weiter pflegen kann. Preise werden nur als Preis übertragen, nie mit Menge.
+
+### Amazon (SP-API)
+
+1. Im Solution Provider Portal bzw. Developer Central eine App mit den Rollen „Produktlisting“ und „Preisgestaltung“ registrieren. LWA-Client-ID und -Secret notieren, App-ID ebenfalls.
+2. Als Weiterleitungs-URI je Instanz `https://<instanz>/einstellungen/amazon/rueckkehr` eintragen.
+3. `AMAZON_LWA_CLIENT_ID`, `AMAZON_LWA_CLIENT_SECRET`, `AMAZON_APP_ID` setzen. Solange die App im Entwurf ist, bleibt `AMAZON_APP_DRAFT=true`.
+4. Der Kunde klickt „Mit Amazon verbinden“ und bestätigt in Seller Central. Alternativ: eine selbst autorisierte App, dann Verkäufer-ID und Refresh-Token einfügen.
+
 ### Billbee
 
 API-Key bei Billbee anfragen (support@billbee.io), in Billbee unter Einstellungen → API ein API-Passwort setzen. Benutzer ist die Login-E-Mail. Unter Einstellungen angeben, ob der Einkaufspreis in Billbee netto oder brutto gepflegt ist.
@@ -84,7 +105,8 @@ API-Key bei Billbee anfragen (support@billbee.io), in Billbee unter Einstellunge
 ## Befehle
 
 ```
-php artisan marktschreier:user {email} {name?}   Benutzer anlegen oder Passwort setzen
+php artisan marktschreier:user {email} {name?} [--staff]   Benutzer anlegen (Standard: Administrator) oder Passwort setzen
+php artisan marktschreier:marketplace {ebay|amazon} [listings|prices]   Angebote lesen bzw. offene Preise übertragen
 php artisan marktschreier:import [--full]       Shopify-Import (ohne --full nur Änderungen)
 php artisan marktschreier:billbee               EK und Bestand aus Billbee lesen
 php artisan marktschreier:orders [--rematch]    Verkäufe aus Billbee lesen (erstmals 12 Monate)
@@ -98,5 +120,7 @@ php artisan marktschreier:orders [--rematch]    Verkäufe aus Billbee lesen (ers
 - `app/Services/Pricing` – Rechenkern (Gewinn, Preis aus EK) und einmaliges Anwenden von Regelwerken
 - `app/Services/Sales/SalesStats.php` – Umsatz und Gewinn aus den Bestellungen
 - `app/Services/Opportunities` – Chancenfinder, Schwellen als Konstanten in `OpportunityFinder`
+- `app/Services/Marketplaces` – eBay (OAuth, Trading API, Taxonomy) und Amazon (LWA, Listings, Catalog), gemeinsamer Einstieg `MarketplaceManager`
+- `app/Livewire/Settings` – Einstellungsbereiche, Benutzerverwaltung, Mein Konto
 - `app/Models/Concerns/TracksShopifySync.php` – merkt sich den letzten Shopify-Stand und erkennt offene Änderungen
 - `app/Livewire` – Oberfläche (Livewire 4, schlichtes CSS in `public/css/app.css`, kein Build-Schritt)
