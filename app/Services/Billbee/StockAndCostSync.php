@@ -74,6 +74,11 @@ class StockAndCostSync
                     'billbee_id' => $bb['Id'] ?? null,
                     'cost_net' => $cost !== null ? round((float) $cost, 4) : null,
                     'stock' => isset($bb['StockCurrent']) ? (int) floor((float) $bb['StockCurrent']) : null,
+                    'stock_locations' => json_encode(collect($bb['Stocks'] ?? [])->map(fn ($s) => [
+                        'name' => $s['Name'] ?? ('Lager '.($s['StockId'] ?? '?')),
+                        'quantity' => (int) floor((float) ($s['StockCurrent'] ?? 0)),
+                        'reserved' => (int) floor((float) ($s['UnfulfilledAmount'] ?? 0)),
+                    ])->values()->all() ?: null),
                     'billbee_synced_at' => now(),
                 ]);
                 $stats['matched']++;

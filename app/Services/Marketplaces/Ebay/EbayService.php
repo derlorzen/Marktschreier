@@ -79,10 +79,12 @@ class EbayService
                 $rows = [];
                 if (isset($item->Variations->Variation)) {
                     foreach ($item->Variations->Variation as $var) {
-                        $rows[] = ['sku' => (string) $var->SKU, 'price' => (float) $var->StartPrice, 'variation' => true];
+                        $rows[] = ['sku' => (string) $var->SKU, 'price' => (float) $var->StartPrice, 'variation' => true,
+                            'qty' => max(0, (int) $var->Quantity - (int) ($var->SellingStatus->QuantitySold ?? 0))];
                     }
                 } else {
-                    $rows[] = ['sku' => (string) $item->SKU, 'price' => (float) ($item->SellingStatus->CurrentPrice ?? $item->BuyItNowPrice ?? 0), 'variation' => false];
+                    $rows[] = ['sku' => (string) $item->SKU, 'price' => (float) ($item->SellingStatus->CurrentPrice ?? $item->BuyItNowPrice ?? 0), 'variation' => false,
+                        'qty' => isset($item->QuantityAvailable) ? (int) $item->QuantityAvailable : max(0, (int) $item->Quantity - (int) ($item->SellingStatus->QuantitySold ?? 0))];
                 }
                 foreach ($rows as $row) {
                     $variantId = $row['sku'] !== '' ? ($bySku[mb_strtolower(trim($row['sku']))] ?? null) : null;
@@ -94,6 +96,7 @@ class EbayService
                     $listing = Listing::firstOrNew(['variant_id' => $variantId, 'channel_id' => $channel->id]);
                     $listing->fill([
                         'external_id' => $itemId, 'sku' => $row['sku'], 'status' => 'active', 'remote_price' => $row['price'],
+                        'remote_quantity' => $row['qty'], 'fulfillment' => 'FBM',
                         'last_error' => null, 'checked_at' => now(),
                         'data' => array_replace($listing->data ?? [], ['variation' => $row['variation'], 'title' => (string) $item->Title]),
                     ]);

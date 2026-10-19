@@ -54,7 +54,7 @@ class AmazonService
             $skus = $variants->pluck('sku')->all();
             $json = $this->client->request('GET', "/listings/2021-08-01/items/{$sellerId}", [
                 'marketplaceIds' => $mp, 'identifiers' => implode(',', $skus), 'identifiersType' => 'SKU',
-                'includedData' => 'summaries,offers,issues', 'pageSize' => 20,
+                'includedData' => 'summaries,offers,issues,fulfillmentAvailability', 'pageSize' => 20,
             ]);
             $items = collect($json['items'] ?? [])->keyBy(fn ($i) => mb_strtolower($i['sku'] ?? ''));
             foreach ($variants as $v) {
@@ -72,6 +72,9 @@ class AmazonService
                 $summary = collect($item['summaries'] ?? [])->firstWhere('marketplaceId', $mp) ?? ($item['summaries'][0] ?? []);
                 $offer = collect($item['offers'] ?? [])->first(fn ($o) => ($o['offerType'] ?? 'B2C') === 'B2C');
                 $errors = collect($item['issues'] ?? [])->where('severity', 'ERROR')->pluck('message')->all();
+                $availability = collect($item['fulfillmentAvailability'] ?? []);
+                $fbm = $availability->firstWhere('fulfillmentChannelCode', 'DEFAULT');
+                $isFba = $availability->contains(fn ($a) => $a['fulfillmentChannelCode'] !== 'DEFAULT');
                 $status = $errors ? 'error' : (in_array('BUYABLE', $summary['status'] ?? [], true) ? 'active' : 'inactive');
                 if ($errors) {
                     $stats['errors']++;
@@ -82,6 +85,8 @@ class AmazonService
                     'status' => $status,
                     'remote_price' => isset($offer['price']['amount']) ? (float) $offer['price']['amount'] : $listing->remote_price,
                     'last_error' => $errors ? implode(' ', $errors) : null,
+                    'remote_quantity' => $fbm ? (int) ($fbm['quantity'] ?? 0) : null,
+                    'fulfillment' => $isFba ? 'FBA' : ($fbm ? 'FBM' : $listing->fulfillment),
                     'checked_at' => now(),
                     'data' => array_replace($listing->data ?? [], ['title' => $summary['itemName'] ?? null, 'fulfillment' => $listing->data['fulfillment'] ?? null]),
                 ]);
@@ -90,8 +95,43 @@ class AmazonService
             }
         });
         $this->client->connection()->update(['listings_checked_at' => now()]);
+        $stats['fba'] = $this->syncFbaInventory();
 
         return $stats;
+    }
+
+    /**
+     * FBA-Bestand je SKU (verfügbar, unterwegs, reserviert), höchstens 50 SKUs je Anfrage.
+     */
+    public function syncFbaInventory(): int
+    {
+        $channel = $this->channel();
+        $mp = $this->client->marketplaceId();
+        $listings = Listing::where('channel_id', $channel->id)->where('fulfillment', 'FBA')->whereNotNull('sku')->get()->keyBy(fn ($l) => mb_strtolower($l->sku));
+        $count = 0;
+        foreach ($listings->chunk(50) as $chunk) {
+            $json = $this->client->request('GET', '/fba/inventory/v1/summaries', [
+                'details' => 'true', 'granularityType' => 'Marketplace', 'granularityId' => $mp, 'marketplaceIds' => $mp,
+                'sellerSkus' => $chunk->pluck('sku')->implode(','),
+            ]);
+            foreach ($json['payload']['inventorySummaries'] ?? [] as $s) {
+                $l = $listings->get(mb_strtolower($s['sellerSku'] ?? ''));
+                if (! $l) {
+                    continue;
+                }
+                $d = $s['inventoryDetails'] ?? [];
+                $l->update(['fba' => [
+                    'fulfillable' => (int) ($d['fulfillableQuantity'] ?? 0),
+                    'inbound' => (int) ($d['inboundWorkingQuantity'] ?? 0) + (int) ($d['inboundShippedQuantity'] ?? 0) + (int) ($d['inboundReceivingQuantity'] ?? 0),
+                    'reserved' => (int) ($d['reservedQuantity']['totalReservedQuantity'] ?? 0),
+                    'unfulfillable' => (int) ($d['unfulfillableQuantity']['totalUnfulfillableQuantity'] ?? 0),
+                    'total' => (int) ($s['totalQuantity'] ?? 0),
+                ], 'remote_quantity' => (int) ($d['fulfillableQuantity'] ?? 0)]);
+                $count++;
+            }
+        }
+
+        return $count;
     }
 
     /** @return list<array{asin: string, title: ?string, brand: ?string, image: ?string}> */

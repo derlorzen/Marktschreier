@@ -41,6 +41,7 @@ Route::middleware('auth')->group(function () {
     })->name('products.close-all');
     Route::livewire('/hinweise', \App\Livewire\Alerts::class)->name('alerts');
     Route::livewire('/chancen', \App\Livewire\Opportunities::class)->name('opportunities');
+    Route::livewire('/bestand', \App\Livewire\Stock::class)->name('stock');
     Route::livewire('/preise', \App\Livewire\Pricing::class)->name('pricing');
     Route::livewire('/abgleich', Sync::class)->name('sync');
     Route::livewire('/einstellungen/konto', \App\Livewire\Settings\Account::class)->name('settings.account');

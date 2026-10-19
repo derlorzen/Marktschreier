@@ -18,6 +18,7 @@
         ],
         'Sortiment' => [
             ['route' => 'products.index', 'match' => 'products.*', 'label' => 'Artikel', 'icon' => 'M4 7h16M4 12h16M4 17h10'],
+            ['route' => 'stock', 'match' => 'stock', 'label' => 'Bestand', 'icon' => 'M3 7l9-4 9 4-9 4-9-4zM3 7v10l9 4 9-4V7M12 11v10'],
             ['route' => 'pricing', 'match' => 'pricing', 'label' => 'Preisregeln', 'icon' => 'M7 3h10a1 1 0 0 1 1 1v16a1 1 0 0 1-1 1H7a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1zM9 7h6M9 11h1M12 11h1M15 11h0M9 15h1M12 15h1M9 18h1M12 18h1M15 15v3'],
         ],
         'System' => [

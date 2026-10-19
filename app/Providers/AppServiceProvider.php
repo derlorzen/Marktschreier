@@ -20,6 +20,15 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
+        \App\Services\Alerts\AlertChecks::register('oversell', function (\App\Services\Alerts\AlertService $alerts) {
+            $keys = [];
+            foreach (app(\App\Services\Stock\StockOverview::class)->oversold() as $row) {
+                $v = $row['variant'];
+                $keys[] = $key = 'oversell:'.$v->id;
+                $alerts->raise($key, 'oversell', 'bad', "Überverkaufsgefahr: {$v->product->title}".($v->label() !== 'Standard' ? " ({$v->label()})" : ''), implode('. ', $row['warnings']).'.', '/bestand?filter=warn');
+            }
+            $alerts->resolveMissing('oversell', $keys);
+        });
         \Illuminate\Support\Facades\Gate::define('admin', fn (\App\Models\User $user) => $user->isAdmin() && $user->active);
         //
     }

@@ -198,7 +198,7 @@ class MarketplaceTest extends TestCase
         $this->assertTrue(MarketplaceConnection::for('amazon')->isConnected());
 
         $stats = app(MarketplaceManager::class)->syncListings('amazon');
-        $this->assertSame(['checked' => 2, 'found' => 2, 'errors' => 1], $stats);
+        $this->assertSame(['checked' => 2, 'found' => 2, 'errors' => 1, 'fba' => 0], $stats);
         $black = Listing::where('sku', 'JM-SLV-BLK')->sole();
         $this->assertSame('active', $black->status);
         $this->assertSame('B0TEST0001', $black->external_id);

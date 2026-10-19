@@ -12,7 +12,7 @@ class Listing extends Model
     protected function casts(): array
     {
         return [
-            'remote_price' => 'decimal:2', 'pushed_price' => 'decimal:2', 'data' => 'array', 'created_by_us' => 'boolean',
+            'remote_price' => 'decimal:2', 'pushed_price' => 'decimal:2', 'data' => 'array', 'created_by_us' => 'boolean', 'fba' => 'array',
             'checked_at' => 'datetime', 'price_pushed_at' => 'datetime',
         ];
     }

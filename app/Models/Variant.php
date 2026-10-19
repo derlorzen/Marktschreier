@@ -20,6 +20,7 @@ class Variant extends Model
             'compare_at_price' => 'decimal:2',
             'cost_net' => 'decimal:4',
             'synced_snapshot' => 'array',
+            'stock_locations' => 'array',
             'billbee_synced_at' => 'datetime',
         ];
     }
