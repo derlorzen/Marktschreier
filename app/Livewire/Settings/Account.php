@@ -24,10 +24,16 @@ class Account extends Component
 
     public ?string $notice = null;
 
+    public bool $mailAlerts = true;
+
+    public bool $mailWeekly = true;
+
     public function mount(): void
     {
         $this->name = auth()->user()->name;
         $this->email = auth()->user()->email;
+        $this->mailAlerts = (bool) (auth()->user()->mail_alerts ?? true);
+        $this->mailWeekly = (bool) (auth()->user()->mail_weekly ?? true);
     }
 
     public function saveProfile(): void
@@ -39,6 +45,12 @@ class Account extends Component
         ], ['email.unique' => 'Diese E-Mail-Adresse wird schon verwendet.']);
         $user->update(['name' => trim($this->name), 'email' => mb_strtolower(trim($this->email))]);
         $this->notice = 'Gespeichert.';
+    }
+
+    public function saveMailPrefs(): void
+    {
+        auth()->user()->update(['mail_alerts' => $this->mailAlerts, 'mail_weekly' => $this->mailWeekly]);
+        $this->notice = 'Mail-Einstellungen gespeichert.';
     }
 
     public function changePassword(): void

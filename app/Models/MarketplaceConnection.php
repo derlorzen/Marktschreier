@@ -52,6 +52,22 @@ class MarketplaceConnection extends Model
         $this->save();
     }
 
+    protected static function booted(): void
+    {
+        static::updated(function (self $c) {
+            if (! $c->wasChanged('status')) {
+                return;
+            }
+            $alerts = app(\App\Services\Alerts\AlertService::class);
+            $name = ['ebay' => 'eBay', 'amazon' => 'Amazon', 'amazon_ads' => 'Amazon Werbung', 'tiktok' => 'TikTok Shop'][$c->provider] ?? $c->provider;
+            if ($c->status === 'error') {
+                $alerts->raise('connection:'.$c->provider, 'connection', 'bad', "Verbindung zu {$name} gestört", $c->last_error, '/einstellungen');
+            } else {
+                $alerts->resolve('connection:'.$c->provider);
+            }
+        });
+    }
+
     public function isConnected(): bool
     {
         return $this->status === 'connected' && filled($this->secrets()['refresh_token'] ?? null);

@@ -9,7 +9,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 
-#[Fillable(['name', 'email', 'password', 'role', 'active', 'must_change_password', 'last_login_at'])]
+#[Fillable(['name', 'email', 'password', 'role', 'active', 'must_change_password', 'last_login_at', 'mail_alerts', 'mail_weekly'])]
 #[Hidden(['password', 'remember_token'])]
 class User extends Authenticatable
 {
@@ -32,6 +32,8 @@ class User extends Authenticatable
             'password' => 'hashed',
             'active' => 'boolean',
             'must_change_password' => 'boolean',
+            'mail_alerts' => 'boolean',
+            'mail_weekly' => 'boolean',
         ];
     }
 

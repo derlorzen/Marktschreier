@@ -39,6 +39,7 @@ Route::middleware('auth')->group(function () {
 
         return redirect()->route('products.index');
     })->name('products.close-all');
+    Route::livewire('/hinweise', \App\Livewire\Alerts::class)->name('alerts');
     Route::livewire('/chancen', \App\Livewire\Opportunities::class)->name('opportunities');
     Route::livewire('/preise', \App\Livewire\Pricing::class)->name('pricing');
     Route::livewire('/abgleich', Sync::class)->name('sync');
@@ -48,6 +49,13 @@ Route::middleware('auth')->group(function () {
         Route::livewire('/', \App\Livewire\Settings\Overview::class)->name('settings');
         Route::livewire('/allgemein', \App\Livewire\Settings\General::class)->name('settings.general');
         Route::livewire('/benutzer', \App\Livewire\Settings\Users::class)->name('settings.users');
+        Route::livewire('/sicherung', \App\Livewire\Settings\Backups::class)->name('settings.backups');
+        Route::get('/sicherung/{name}', function (string $name, \App\Services\BackupService $backups) {
+            $path = $backups->path($name);
+            abort_unless($path, 404);
+
+            return response()->download($path);
+        })->name('settings.backups.download');
         Route::livewire('/zeitplan', \App\Livewire\Settings\Schedule::class)->name('settings.schedule');
         Route::livewire('/shopify', \App\Livewire\Settings\Shopify::class)->name('settings.shopify');
         Route::livewire('/billbee', \App\Livewire\Settings\Billbee::class)->name('settings.billbee');

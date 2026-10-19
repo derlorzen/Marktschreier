@@ -254,3 +254,11 @@ textarea.input { min-height: 140px; resize: vertical; line-height: 1.5; }
 .kv dt { color: var(--muted); }
 .kv dd { margin: 0; }
 .brand-sub { display: block; font-size: 12px; font-weight: 500; color: var(--muted); }
+
+/* Hinweise */
+.alert-card { display: flex; gap: 16px; padding: 14px 18px; margin-bottom: 10px; border-left: 4px solid var(--line-2); }
+.card.alert-card + .card.alert-card { margin-top: 0; }
+.alert-card.lvl-bad { border-left-color: var(--bad); }
+.alert-card.lvl-warn { border-left-color: var(--warn); }
+@media (max-width: 700px) { .alert-card { flex-direction: column; } }
+.nav-link .count.count-bad { background: var(--bad-tint); color: var(--bad); }

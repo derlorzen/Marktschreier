@@ -13,6 +13,7 @@
     $nav = [
         '' => [
             ['route' => 'dashboard', 'match' => 'dashboard', 'label' => 'Start', 'icon' => 'M3 11l9-8 9 8M5 10v10h5v-6h4v6h5V10'],
+            ['route' => 'alerts', 'match' => 'alerts', 'label' => 'Hinweise', 'icon' => 'M6 8a6 6 0 1 1 12 0c0 7 3 9 3 9H3s3-2 3-9M10.3 21a1.9 1.9 0 0 0 3.4 0'],
             ['route' => 'opportunities', 'match' => 'opportunities', 'label' => 'Chancen', 'icon' => 'M12 3l2.6 5.6 6.1.7-4.5 4.2 1.2 6L12 16.6 6.6 19.5l1.2-6L3.3 9.3l6.1-.7L12 3z'],
         ],
         'Sortiment' => [
@@ -25,6 +26,8 @@
         ],
     ];
     $pending = \App\Models\Product::whereIn('push_status', ['pending', 'error', 'conflict'])->count();
+    $unreadAlerts = auth()->check() ? \App\Models\Alert::unreadFor(auth()->user())->count() : 0;
+    $badAlerts = $unreadAlerts ? \App\Models\Alert::unreadFor(auth()->user())->where('level', 'bad')->exists() : false;
 @endphp
 <div class="shell">
     <aside class="sidebar">
@@ -38,6 +41,9 @@
                 <a class="nav-link" href="{{ route($item['route']) }}" wire:navigate @if (request()->routeIs($item['match'])) aria-current="page" @endif>
                     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="{{ $item['icon'] }}"/></svg>
                     {{ $item['label'] }}
+                    @if ($item['route'] === 'alerts' && $unreadAlerts)
+                        <span @class(['count', 'count-bad' => $badAlerts]) title="Ungelesene Hinweise">{{ $unreadAlerts }}</span>
+                    @endif
                     @if ($item['route'] === 'sync' && $pending)
                         <span class="count" title="Artikel mit offenen Änderungen">{{ $pending }}</span>
                     @endif

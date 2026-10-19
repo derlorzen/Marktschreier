@@ -40,6 +40,8 @@ x-app: &app
     AMAZON_LWA_CLIENT_ID: ${AMAZON_LWA_CLIENT_ID:-}
     AMAZON_LWA_CLIENT_SECRET: ${AMAZON_LWA_CLIENT_SECRET:-}
     AMAZON_APP_DRAFT: ${AMAZON_APP_DRAFT:-true}
+  volumes:
+    - backups:/var/www/html/storage/app/backups
   depends_on:
     postgres: { condition: service_healthy }
     redis: { condition: service_healthy }
@@ -76,6 +78,21 @@ services:
       test: ["CMD", "healthcheck-schedule"]
       start_period: 10s
 
+  backup:
+    image: postgres:17-alpine
+    restart: unless-stopped
+    entrypoint: ["/bin/sh", "/backup.sh"]
+    environment:
+      PGPASSWORD: ${DB_PASSWORD:?DB_PASSWORD fehlt}
+      POSTGRES_USER: marktschreier
+      POSTGRES_DB: marktschreier
+      BACKUP_KEEP_DAYS: ${BACKUP_KEEP_DAYS:-14}
+    volumes:
+      - ./docker/backup.sh:/backup.sh:ro
+      - backups:/backups
+    depends_on:
+      postgres: { condition: service_healthy }
+
   postgres:
     image: postgres:17-alpine
     restart: unless-stopped
@@ -104,5 +121,6 @@ services:
       retries: 5
 
 volumes:
+  backups:
   postgres-data:
   redis-data:

@@ -80,3 +80,32 @@ foreach (\App\Services\Marketplaces\MarketplaceManager::PROVIDERS as $provider) 
         ->when(fn () => $plan::enabled('listings') && rescue(fn () => \App\Models\MarketplaceConnection::for($provider)->isConnected(), false, false))
         ->name('listings-'.$provider)->withoutOverlapping();
 }
+
+Schedule::job(new \App\Jobs\RunAlertChecks)->hourlyAt(40)->name('alert-checks')->withoutOverlapping();
+
+Schedule::call(function () {
+    $review = app(\App\Services\Alerts\WeeklyReview::class)->build();
+    foreach (\App\Models\User::where('active', true)->where('mail_weekly', true)->get() as $user) {
+        \Illuminate\Support\Facades\Mail::to($user->email)->queue(new \App\Mail\WeeklyReviewMail($review));
+    }
+})->weeklyOn(1, '7:45')->timezone('Europe/Berlin')->name('weekly-review');
+
+Artisan::command('marktschreier:alerts', function () {
+    app(\App\Services\Alerts\AlertChecks::class)->run();
+    $this->info(\App\Models\Alert::open()->count().' offene Hinweise');
+})->purpose('Hinweise prüfen und aktualisieren');
+
+// Lokal (SQLite) sichert Marktschreier selbst, mit Postgres übernimmt das der Dienst "backup".
+Schedule::call(fn () => app(\App\Services\BackupService::class)->now())
+    ->dailyAt('2:30')->timezone('Europe/Berlin')
+    ->when(fn () => \Illuminate\Support\Facades\DB::connection()->getDriverName() === 'sqlite')
+    ->name('backup-sqlite');
+
+Schedule::call(function () {
+    $list = app(\App\Services\BackupService::class)->list();
+    if (! $list || $list[0]['time'] < now()->subHours(36)->timestamp) {
+        app(\App\Services\Alerts\AlertService::class)->raise('backup:stale', 'backup', 'bad', 'Keine aktuelle Sicherung', 'Seit mehr als 36 Stunden wurde die Datenbank nicht gesichert.', '/einstellungen/sicherung');
+    } else {
+        app(\App\Services\Alerts\AlertService::class)->resolve('backup:stale');
+    }
+})->dailyAt('9:05')->timezone('Europe/Berlin')->name('backup-check');

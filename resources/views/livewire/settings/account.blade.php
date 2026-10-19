@@ -22,6 +22,15 @@
         </div>
     </form>
 
+    <form class="card" wire:submit="saveMailPrefs">
+        <div class="card-head"><h2>Benachrichtigungen per Mail</h2><span class="muted small">an {{ $user->email }}</span></div>
+        <div class="card-pad stack">
+            <label class="check"><input type="checkbox" wire:model="mailAlerts"> Sofort bei Fehlern (Abgleich fehlgeschlagen, Verbindung gestört, ausverkauft)</label>
+            <label class="check"><input type="checkbox" wire:model="mailWeekly"> Wochenrückblick am Montagmorgen</label>
+            <div><button class="btn btn-primary" type="submit">Speichern</button></div>
+        </div>
+    </form>
+
     <form class="card" wire:submit="changePassword">
         <div class="card-head"><h2>Passwort ändern</h2></div>
         <div class="card-pad grid-2">

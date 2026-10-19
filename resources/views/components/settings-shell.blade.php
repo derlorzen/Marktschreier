@@ -7,6 +7,7 @@
             ['settings.general', 'Allgemein', false],
             ['settings.users', 'Benutzer', false],
             ['settings.schedule', 'Abgleich und Zeitplan', false],
+            ['settings.backups', 'Sicherung', false],
         ],
         'Verbindungen' => [
             ['settings.shopify', 'Shopify', false],

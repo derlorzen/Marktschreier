@@ -26,11 +26,16 @@ class SyncRun extends Model
     public function finish(array $stats, ?string $message = null): void
     {
         $this->update(['status' => 'ok', 'stats' => $stats, 'message' => $message, 'finished_at' => now()]);
+        rescue(fn () => app(\App\Services\Alerts\AlertService::class)->resolve('sync:'.$this->type), null, false);
     }
 
     public function fail(string $message, array $stats = []): void
     {
         $this->update(['status' => 'failed', 'stats' => $stats, 'message' => $message, 'finished_at' => now()]);
+        // Einzelne Preisübertragungen melden sich im Artikel, alles andere als Hinweis mit Mail.
+        rescue(fn () => app(\App\Services\Alerts\AlertService::class)->raise(
+            'sync:'.$this->type, 'sync_failed', 'bad', $this->typeLabel().' fehlgeschlagen', $message, '/abgleich'
+        ), null, false);
     }
 
     public function typeLabel(): string
