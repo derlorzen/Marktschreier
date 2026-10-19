@@ -45,6 +45,7 @@ class Format
             'pending' => ['Nicht übertragen', 'badge-warn'],
             'error' => ['Fehler', 'badge-bad'],
             'conflict' => ['Konflikt', 'badge-amber'],
+            'new' => ['Nur hier', ''],
         ][$status] ?? [$status, ''];
     }
 

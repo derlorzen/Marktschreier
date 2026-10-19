@@ -130,7 +130,9 @@ class ProductUiTest extends TestCase
             ->call('save')->assertHasNoErrors();
 
         $this->assertSame('Polypropylen', $product->attributeValues()->where('key', 'Material')->value('value'));
-        $this->assertFalse($product->fresh('variants')->hasPendingChanges());
+        // Merkmale gehen als Metafelder zu Shopify und gelten bis dahin als offen.
+        $this->assertTrue($product->fresh()->attributesPending());
+        $this->assertSame(Product::STATUS_PENDING, $product->fresh()->push_status);
     }
 
     public function test_open_articles_appear_as_tabs(): void

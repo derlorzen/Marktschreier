@@ -5,6 +5,8 @@
     <div class="page-head">
         <h1>Artikel</h1>
         <span class="muted">{{ number_format($products->total(), 0, ',', '.') }}@if ($filtered) von {{ number_format($total, 0, ',', '.') }}@endif</span>
+        <span class="spacer"></span>
+        <a class="btn btn-primary" href="{{ route('products.create') }}" wire:navigate>Neuer Artikel</a>
     </div>
 
     @if ($notice)

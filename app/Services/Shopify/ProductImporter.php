@@ -43,6 +43,25 @@ query Products($first: Int!, $after: String, $query: String) {
 }
 GQL;
 
+    private const SINGLE = <<<'GQL'
+query One($id: ID!) {
+  product(id: $id) {
+    id handle title descriptionHtml vendor productType tags status updatedAt
+    seo { title description }
+    options { name position optionValues { name } }
+    media(first: 50) { nodes { ... on MediaImage { id alt image { url } } } }
+    variants(first: 100) {
+      nodes {
+        id title sku price compareAtPrice position
+        barcodes(first: 1) { nodes { value } }
+        selectedOptions { name value }
+        inventoryItem { id }
+      }
+    }
+  }
+}
+GQL;
+
     private array $stats = ['products_new' => 0, 'products_updated' => 0, 'variants' => 0, 'conflicts' => 0, 'pages' => 0];
 
     public function __construct(private ShopifyClient $client)
@@ -75,6 +94,14 @@ GQL;
         $run->finish($this->stats, $since ? 'Nur Änderungen seit '.$since->format('d.m.Y H:i') : 'Vollständiger Import');
 
         return $this->stats;
+    }
+
+    /** Einen einzelnen Artikel neu einlesen, z. B. nach dem Anlegen oder nach Bildänderungen. */
+    public function importOne(string $gid): ?Product
+    {
+        $node = $this->client->query(self::SINGLE, ['id' => $gid])['product'] ?? null;
+
+        return $node ? $this->importNode($node) : null;
     }
 
     /** @param  array<string, mixed>  $node */

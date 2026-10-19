@@ -23,6 +23,7 @@ Route::post('/logout', function (Request $request) {
 Route::middleware('auth')->group(function () {
     Route::livewire('/', \App\Livewire\Dashboard::class)->name('dashboard');
     Route::livewire('/artikel', Index::class)->name('products.index');
+    Route::livewire('/artikel/neu', \App\Livewire\Products\Create::class)->name('products.create');
     Route::livewire('/artikel/{product}', Edit::class)->name('products.edit');
     Route::get('/artikel/{product}/schliessen', function (Product $product) {
         $next = OpenTabs::close($product->id);

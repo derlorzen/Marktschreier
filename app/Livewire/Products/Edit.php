@@ -47,6 +47,10 @@ class Edit extends Component
 
     public bool $showRulePreview = false;
 
+    public bool $showAddVariant = false;
+
+    public array $newVariant = ['options' => [], 'sku' => '', 'barcode' => '', 'price' => ''];
+
     public ?string $noticeType = null;
 
     public function mount(Product $product): void
@@ -166,6 +170,11 @@ class Edit extends Component
 
         $count = $editor->update($this->product, $productFields, $variantFields, auth()->id(), resolvesConflict: true);
         $count += $this->saveAttributes();
+        $fresh = $this->product->fresh('variants');
+        if ($fresh->push_status !== Product::STATUS_CONFLICT) {
+            $fresh->refreshPushStatus();
+            $fresh->save();
+        }
 
         $this->fillForm();
         $this->notice = $count ? $count.' '.($count === 1 ? 'Änderung' : 'Änderungen').' gespeichert. Noch nicht in Shopify.' : 'Keine Änderungen.';
@@ -231,9 +240,10 @@ class Edit extends Component
 
             return;
         }
+        $wasNew = ! $product->shopify_id;
         $ok = $pusher->push($product, auth()->id());
         $this->fillForm();
-        $this->notice = $ok ? 'Zu Shopify übertragen.' : 'Übertragung fehlgeschlagen: '.$this->product->push_error;
+        $this->notice = $ok ? ($wasNew ? 'In Shopify als Entwurf angelegt.' : 'Zu Shopify übertragen.') : 'Übertragung fehlgeschlagen: '.$this->product->push_error;
         $this->noticeType = $ok ? 'ok' : 'bad';
     }
 
@@ -290,6 +300,35 @@ class Edit extends Component
         $this->noticeType = 'ok';
     }
 
+    public function addVariant(\App\Services\Shopify\CatalogWriter $writer): void
+    {
+        $this->validate([
+            'newVariant.sku' => ['required', 'string', 'max:255', 'unique:variants,sku'],
+            'newVariant.barcode' => ['nullable', new Gtin],
+            'newVariant.price' => ['required', fn ($a, $v, $f) => Format::parseDecimal($v) === null ? $f('Bitte einen Preis eingeben.') : null],
+        ], ['newVariant.sku.unique' => 'Diese SKU gibt es schon.', 'newVariant.sku.required' => 'Bitte eine SKU angeben.']);
+        $opts = array_map('trim', array_pad($this->newVariant['options'], count($this->product->options ?? []), ''));
+        if (in_array('', $opts, true)) {
+            $this->addError('newVariant', 'Bitte für jede Option einen Wert angeben.');
+
+            return;
+        }
+        try {
+            $writer->addVariant($this->product, [
+                'options' => $opts, 'sku' => trim($this->newVariant['sku']), 'barcode' => trim($this->newVariant['barcode']) ?: null,
+                'price' => Format::parseDecimal($this->newVariant['price']), 'compare_at_price' => null,
+            ], auth()->id());
+        } catch (\Throwable $e) {
+            $this->addError('newVariant', $e->getMessage());
+
+            return;
+        }
+        $this->reset('showAddVariant', 'newVariant');
+        $this->fillForm();
+        $this->notice = 'Variante in Shopify angelegt.';
+        $this->noticeType = 'ok';
+    }
+
     public function revert(ProductEditor $editor): void
     {
         $count = $editor->revertToShopify($this->product->fresh('variants'), auth()->id());
@@ -323,7 +362,8 @@ class Edit extends Component
             'priceRules' => $this->tab === 'preise' ? \App\Models\PriceRule::orderBy('name')->get() : collect(),
             'rulePreview' => $this->tab === 'preise' && $this->showRulePreview ? $this->rulePreviewRows() : [],
             'pending' => $pending,
-            'pendingCount' => count($pending['product']) + collect($pending['variants'])->sum(fn ($f) => count($f)),
+            'pendingCount' => count($pending['product']) + collect($pending['variants'])->sum(fn ($f) => count($f)) + ($p->attributesPending() ? 1 : 0),
+            'attributesPending' => $p->attributesPending(),
             'images' => $p->images()->get(),
             'logs' => $this->tab === 'verlauf' ? $p->changeLogs()->with('user:id,name', 'variant:id,title,option1,option2,option3,sku')->limit(200)->get() : collect(),
             'vat' => $vat,

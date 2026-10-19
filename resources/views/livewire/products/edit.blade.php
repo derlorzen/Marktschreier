@@ -22,7 +22,7 @@
         <span class="badge {{ $syncClass }}">{{ $syncLabel }}</span>
         <button class="btn" wire:click="save" wire:loading.attr="disabled">Speichern <span class="spin" wire:loading wire:target="save"></span></button>
         <button class="btn btn-primary" wire:click="push" wire:loading.attr="disabled" title="Speichert und überträgt alle offenen Änderungen zu Shopify">
-            Speichern und zu Shopify <span class="spin" wire:loading wire:target="push"></span>
+            {{ $product->shopify_id ? 'Speichern und zu Shopify' : 'In Shopify anlegen' }} <span class="spin" wire:loading wire:target="push"></span>
         </button>
     </div>
 
@@ -49,7 +49,11 @@
         <div class="notice notice-bad"><strong>Letzte Übertragung fehlgeschlagen:</strong> {{ $product->push_error }}</div>
     @endif
 
-    @if ($pendingCount > 0)
+    @if (session('flash'))<div class="notice notice-ok" style="margin-bottom:12px">{{ session('flash') }}</div>@endif
+    @if (! $product->shopify_id)
+        <div class="notice" style="margin-bottom:12px"><strong>Nur in Marktschreier.</strong> Mit „In Shopify anlegen“ entsteht der Artikel als Entwurf in Shopify, danach können Bilder hochgeladen und Marktplätze bedient werden.
+            @if ($product->push_error)<div class="error">{{ $product->push_error }}</div>@endif</div>
+    @elseif ($pendingCount > 0)
         <div class="notice notice-warn">
             <div class="row" style="margin-bottom:8px">
                 <strong>{{ $pendingCount }} {{ $pendingCount === 1 ? 'Änderung ist' : 'Änderungen sind' }} noch nicht in Shopify</strong>
@@ -63,6 +67,9 @@
                         <td class="clip old">{{ (is_array($c['old']) ? implode(', ', $c['old']) : \Illuminate\Support\Str::limit(strip_tags((string) $c['old']), 120)) ?: 'leer' }}</td>
                         <td class="clip new">{{ (is_array($c['new']) ? implode(', ', $c['new']) : \Illuminate\Support\Str::limit(strip_tags((string) $c['new']), 120)) ?: 'leer' }}</td></tr>
                 @endforeach
+                @if ($attributesPending)
+                    <tr><td class="nowrap">Merkmale</td><td class="old" colspan="2" style="text-decoration:none">werden als Metafelder „marktschreier.…“ übertragen</td></tr>
+                @endif
                 @foreach ($pending['variants'] as $vid => $fields)
                     @php $variant = $product->variants->firstWhere('id', $vid); @endphp
                     @foreach ($fields as $field => $c)
@@ -158,7 +165,32 @@
                 </tbody>
             </table>
             </div>
-            <p class="muted small">Marge und EK beziehen sich auf den gespeicherten Preis. Neue Varianten legst du vorerst in Shopify an, sie kommen beim nächsten Abgleich herein.</p>
+            <p class="muted small">Marge und EK beziehen sich auf den gespeicherten Preis.</p>
+            @if ($product->shopify_id && collect($product->options ?? [])->reject(fn ($o) => in_array($o['name'], ['Title', 'Titel']))->isNotEmpty())
+                @if (! $showAddVariant)
+                    <button class="btn btn-sm" wire:click="$set('showAddVariant', true)">Variante hinzufügen</button>
+                @else
+                    <form class="notice" wire:submit="addVariant">
+                        <h3 style="margin-bottom:8px">Neue Variante</h3>
+                        <div class="grid-3">
+                            @foreach ($product->options as $i => $opt)
+                                <label class="field">{{ $opt['name'] }}
+                                    <input class="input input-sm" wire:model="newVariant.options.{{ $i }}" list="optvals{{ $i }}">
+                                    <datalist id="optvals{{ $i }}">@foreach ($opt['values'] ?? [] as $val)<option value="{{ $val }}">@endforeach</datalist>
+                                </label>
+                            @endforeach
+                            <label class="field">SKU <input class="input input-sm mono" wire:model="newVariant.sku">@error('newVariant.sku') <span class="error">{{ $message }}</span> @enderror</label>
+                            <label class="field">GTIN/EAN <input class="input input-sm mono" wire:model="newVariant.barcode">@error('newVariant.barcode') <span class="error">{{ $message }}</span> @enderror</label>
+                            <label class="field">Preis <input class="input input-sm num" wire:model="newVariant.price" inputmode="decimal">@error('newVariant.price') <span class="error">{{ $message }}</span> @enderror</label>
+                        </div>
+                        @error('newVariant') <div class="error">{{ $message }}</div> @enderror
+                        <div class="row" style="margin-top:10px">
+                            <button class="btn btn-sm btn-primary" type="submit">In Shopify anlegen <span class="spin" wire:loading wire:target="addVariant"></span></button>
+                            <button class="btn btn-sm" type="button" wire:click="$set('showAddVariant', false)">Abbrechen</button>
+                        </div>
+                    </form>
+                @endif
+            @endif
 
         @elseif ($tab === 'preise')
             <div class="table-wrap">
@@ -254,22 +286,10 @@
         @elseif ($tab === 'marktplaetze')
             <livewire:products.marketplaces :product="$product" :key="'mp'.$product->id" />
         @elseif ($tab === 'bilder')
-            @if ($images->isEmpty())
-                <div class="empty">Keine Bilder in Shopify.</div>
-            @else
-                <div class="gallery">
-                    @foreach ($images as $image)
-                        <figure style="margin:0">
-                            <a href="{{ $image->url }}" target="_blank" rel="noopener"><img src="{{ $image->sized(400) }}" alt="{{ $image->alt }}" loading="lazy"></a>
-                            <figcaption class="small muted">{{ $image->position }}. {{ $image->alt ?: 'ohne Alt-Text' }}</figcaption>
-                        </figure>
-                    @endforeach
-                </div>
-            @endif
-            <p class="muted small">Bilder werden aktuell in Shopify gepflegt und hier nur angezeigt.</p>
+            <livewire:products.images :product="$product" :key="'img'.$product->id" />
 
         @elseif ($tab === 'merkmale')
-            <p class="muted small" style="margin-top:0">Merkmale wie Material, Größe oder Kartenanzahl brauchen die Marktplätze später für ihre Pflichtfelder. Sie bleiben vorerst in Marktschreier und werden nicht zu Shopify übertragen.</p>
+            <p class="muted small" style="margin-top:0">Merkmale wie Material, Größe oder Kartenanzahl brauchen die Marktplätze für ihre Pflichtfelder (eBay übernimmt passende automatisch). In Shopify landen sie als Metafelder „marktschreier.…“ und lassen sich im Theme anzeigen.</p>
             <div class="stack">
                 @foreach ($attrs as $i => $row)
                     <div class="row" wire:key="a{{ $i }}">

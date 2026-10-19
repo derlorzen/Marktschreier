@@ -15,6 +15,7 @@ class Product extends Model
     public const STATUS_PENDING = 'pending';
     public const STATUS_ERROR = 'error';
     public const STATUS_CONFLICT = 'conflict';
+    public const STATUS_NEW = 'new';     // nur in Marktschreier, noch nicht in Shopify angelegt
 
     protected $guarded = ['id'];
 
@@ -95,16 +96,34 @@ class Product extends Model
         return ['product' => $this->pendingChanges(), 'variants' => $variants];
     }
 
+    /** Prüfsumme der Merkmale, um geänderte Metafelder zu erkennen */
+    public function attributesHash(): ?string
+    {
+        $attrs = $this->attributeValues()->orderBy('key')->pluck('value', 'key')->all();
+
+        return $attrs ? md5(json_encode($attrs)) : null;
+    }
+
+    public function attributesPending(): bool
+    {
+        return $this->shopify_id !== null && $this->attributesHash() !== $this->attributes_pushed_hash;
+    }
+
     public function hasPendingChanges(): bool
     {
         $all = $this->allPendingChanges();
 
-        return $all['product'] !== [] || $all['variants'] !== [];
+        return $all['product'] !== [] || $all['variants'] !== [] || $this->attributesPending();
     }
 
     /** Status neu bestimmen, ohne einen Fehler- oder Konfliktzustand stillschweigend zu verwerfen. */
     public function refreshPushStatus(): void
     {
+        if (! $this->shopify_id) {
+            $this->push_status = self::STATUS_NEW;
+
+            return;
+        }
         if (in_array($this->push_status, [self::STATUS_ERROR, self::STATUS_CONFLICT], true) && $this->hasPendingChanges()) {
             return;
         }

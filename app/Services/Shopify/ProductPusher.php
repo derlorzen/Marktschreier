@@ -94,13 +94,29 @@ GQL;
     public function push(Product $product, ?int $userId = null, ?SyncRun $run = null): bool
     {
         if (! $product->shopify_id) {
-            $product->update(['push_status' => Product::STATUS_ERROR, 'push_error' => 'Artikel hat keine Shopify-ID. Neue Artikel werden in Stufe 1 in Shopify angelegt.']);
+            // Nur in Marktschreier angelegt: jetzt in Shopify anlegen.
+            try {
+                app(CatalogWriter::class)->createProduct($product, $userId);
 
-            return false;
+                return true;
+            } catch (ShopifyException $e) {
+                $product->update(['push_error' => $e->getMessage()]);
+
+                return false;
+            }
         }
 
         $payload = $this->buildPayload($product);
         if ($payload['product'] === null && $payload['variants'] === []) {
+            if ($product->attributesPending()) {
+                try {
+                    app(CatalogWriter::class)->pushMetafields($product);
+                } catch (ShopifyException $e) {
+                    $product->update(['push_status' => Product::STATUS_ERROR, 'push_error' => 'Merkmale: '.$e->getMessage()]);
+
+                    return false;
+                }
+            }
             $product->update(['push_status' => Product::STATUS_SYNCED, 'push_error' => null]);
 
             return true;
@@ -142,8 +158,15 @@ GQL;
             $variant->save();
         }
         $product->markAsSynced();
+        if ($product->attributesPending()) {
+            try {
+                app(CatalogWriter::class)->pushMetafields($product);
+            } catch (ShopifyException $e) {
+                $product->push_error = 'Merkmale: '.$e->getMessage();
+            }
+        }
         $product->push_status = Product::STATUS_SYNCED;
-        $product->push_error = null;
+        $product->push_error = $product->push_error && str_starts_with($product->push_error, 'Merkmale:') ? $product->push_error : null;
         $product->last_pushed_at = now();
         $product->save();
         $run->finish(['product_id' => $product->id, 'fields' => count($changes['product']) + count($changes['variants'])]);
