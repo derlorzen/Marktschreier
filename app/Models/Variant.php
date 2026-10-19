@@ -5,6 +5,7 @@ namespace App\Models;
 use App\Models\Concerns\TracksShopifySync;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Variant extends Model
 {
@@ -31,6 +32,26 @@ class Variant extends Model
     public function product(): BelongsTo
     {
         return $this->belongsTo(Product::class);
+    }
+
+    public function channelPrices(): HasMany
+    {
+        return $this->hasMany(ChannelPrice::class);
+    }
+
+    /** Aktueller Preis auf einem Kanal. Ohne eigenen Kanalpreis gilt der Shopify-Preis. */
+    public function priceOn(Channel $channel): float
+    {
+        if (! $channel->isShopify()) {
+            $own = $this->relationLoaded('channelPrices')
+                ? $this->channelPrices->firstWhere('channel_id', $channel->id)
+                : $this->channelPrices()->where('channel_id', $channel->id)->first();
+            if ($own) {
+                return (float) $own->price;
+            }
+        }
+
+        return (float) $this->price;
     }
 
     public function label(): string

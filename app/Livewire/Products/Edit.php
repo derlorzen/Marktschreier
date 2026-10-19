@@ -35,6 +35,18 @@ class Edit extends Component
 
     public ?string $notice = null;
 
+    /** Preise je Kanal: eigene Preise für Marktplätze [variant_id][channel_id] */
+    public array $channelPriceInputs = [];
+
+    public ?int $ruleId = null;
+
+    /** @var list<int> */
+    public array $ruleChannels = [];
+
+    public bool $onlyIncrease = false;
+
+    public bool $showRulePreview = false;
+
     public ?string $noticeType = null;
 
     public function mount(Product $product): void
@@ -66,6 +78,16 @@ class Edit extends Component
                 'sku' => (string) $v->sku,
                 'barcode' => (string) $v->barcode,
             ];
+        }
+        $this->channelPriceInputs = [];
+        foreach ($p->variants()->with('channelPrices')->get() as $v) {
+            foreach ($v->channelPrices as $cp) {
+                $this->channelPriceInputs[$v->id][$cp->channel_id] = Format::decimalForInput($cp->price);
+            }
+        }
+        $this->ruleId ??= \App\Models\PriceRule::orderBy('name')->value('id');
+        if ($this->ruleChannels === []) {
+            $this->ruleChannels = \App\Models\Channel::active()->pluck('id')->all();
         }
         $this->attrs = $p->attributeValues->map(fn ($a) => ['key' => $a->key, 'value' => (string) $a->value])->values()->all();
     }
@@ -215,6 +237,59 @@ class Edit extends Component
         $this->noticeType = $ok ? 'ok' : 'bad';
     }
 
+    public function saveChannelPrices(ProductEditor $editor): void
+    {
+        $channels = \App\Models\Channel::active()->get()->reject->isShopify();
+        $count = 0;
+        foreach ($this->product->variants as $variant) {
+            foreach ($channels as $channel) {
+                $raw = $this->channelPriceInputs[$variant->id][$channel->id] ?? '';
+                $value = Format::parseDecimal($raw);
+                if (trim((string) $raw) !== '' && ($value === null || (float) $value <= 0)) {
+                    $this->addError("channelPriceInputs.{$variant->id}.{$channel->id}", 'Ungültiger Preis');
+
+                    return;
+                }
+                $count += $editor->setChannelPrice($variant, $channel, $value, auth()->id()) ? 1 : 0;
+            }
+        }
+        $this->fillForm();
+        $this->notice = $count ? $count.' Kanalpreise gespeichert.' : 'Keine Änderungen.';
+        $this->noticeType = 'ok';
+    }
+
+    private function rulePreviewRows(): array
+    {
+        $rule = $this->ruleId ? \App\Models\PriceRule::with('lines')->find($this->ruleId) : null;
+        if (! $rule) {
+            return [];
+        }
+        $channels = \App\Models\Channel::active()->whereIn('id', $this->ruleChannels)->get();
+        $variants = $this->product->variants()->with(['channelPrices', 'product'])->get();
+
+        return app(\App\Services\Pricing\PriceRuleApplier::class)->preview($variants, $rule, $channels, $this->onlyIncrease);
+    }
+
+    public function previewRule(): void
+    {
+        $this->showRulePreview = true;
+    }
+
+    public function applyRule(\App\Services\Pricing\PriceRuleApplier $applier): void
+    {
+        $rule = \App\Models\PriceRule::with('lines')->find($this->ruleId);
+        if (! $rule) {
+            return;
+        }
+        $count = $applier->apply($this->rulePreviewRows(), $rule, auth()->id());
+        $this->showRulePreview = false;
+        $this->fillForm();
+        $this->notice = $count
+            ? "Regelwerk „{$rule->name}“ angewendet, {$count} Preise geändert. Shopify-Preise sind noch nicht übertragen."
+            : 'Es hat sich kein Preis geändert.';
+        $this->noticeType = 'ok';
+    }
+
     public function revert(ProductEditor $editor): void
     {
         $count = $editor->revertToShopify($this->product->fresh('variants'), auth()->id());
@@ -232,7 +307,16 @@ class Edit extends Component
         $margins = $p->variants->map(fn ($v) => $v->cost_net !== null && (float) $v->price > 0
             ? ($v->marginNet($vat) / ((float) $v->price / (1 + $vat / 100))) * 100 : null)->filter(fn ($m) => $m !== null);
 
+        $channels = \App\Models\Channel::active()->get();
+        $calc = new \App\Services\Pricing\PriceCalculator($vat);
+        $priceVariants = $this->tab === 'preise' ? $p->variants()->with('channelPrices')->get() : collect();
+
         return view('livewire.products.edit', [
+            'channels' => $channels,
+            'calc' => $calc,
+            'priceVariants' => $priceVariants,
+            'priceRules' => $this->tab === 'preise' ? \App\Models\PriceRule::orderBy('name')->get() : collect(),
+            'rulePreview' => $this->tab === 'preise' && $this->showRulePreview ? $this->rulePreviewRows() : [],
             'pending' => $pending,
             'pendingCount' => count($pending['product']) + collect($pending['variants'])->sum(fn ($f) => count($f)),
             'images' => $p->images()->get(),

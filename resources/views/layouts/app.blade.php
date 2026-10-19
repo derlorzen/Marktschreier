@@ -12,6 +12,7 @@
 @php
     $nav = [
         ['route' => 'products.index', 'match' => 'products.*', 'label' => 'Artikel', 'icon' => 'M4 7h16M4 12h16M4 17h10'],
+        ['route' => 'pricing', 'match' => 'pricing', 'label' => 'Preisregeln', 'icon' => 'M7 3h10a1 1 0 0 1 1 1v16a1 1 0 0 1-1 1H7a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1zM9 7h6M9 11h1M12 11h1M15 11h0M9 15h1M12 15h1M9 18h1M12 18h1M15 15v3'],
         ['route' => 'sync', 'match' => 'sync', 'label' => 'Abgleich', 'icon' => 'M4 12a8 8 0 0 1 14-5.3M20 12a8 8 0 0 1-14 5.3M18 3v4h-4M6 21v-4h4'],
         ['route' => 'settings', 'match' => 'settings', 'label' => 'Einstellungen', 'icon' => 'M12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6ZM19 12l2-1-1-3-2 .3-1.4-1.4.3-2-3-1-1 2h-2l-1-2-3 1 .3 2L5.3 9 3 8.7l-1 3 2 1v2l-2 1 1 3 2-.3 1.4 1.4-.3 2 3 1 1-2h2l1 2 3-1-.3-2 1.4-1.4 2 .3 1-3-2-1Z'],
     ];

@@ -2,7 +2,9 @@
 
 namespace App\Services;
 
+use App\Models\Channel;
 use App\Models\ChangeLog;
+use App\Models\ChannelPrice;
 use App\Models\Product;
 use App\Models\Variant;
 use Illuminate\Support\Facades\DB;
@@ -69,6 +71,30 @@ class ProductEditor
         $product->save();
 
         return $count;
+    }
+
+    /**
+     * Eigenen Preis für einen Marktplatz setzen. Null entfernt ihn, dann gilt wieder der Shopify-Preis.
+     */
+    public function setChannelPrice(Variant $variant, Channel $channel, ?string $price, ?int $userId = null): bool
+    {
+        if ($channel->isShopify()) {
+            return $this->update($variant->product, [], [$variant->id => ['price' => $price]], $userId) > 0;
+        }
+        $existing = ChannelPrice::where('variant_id', $variant->id)->where('channel_id', $channel->id)->first();
+        $old = $existing ? number_format((float) $existing->price, 2, '.', '') : null;
+        $new = $price === null ? null : number_format((float) $price, 2, '.', '');
+        if ($old === $new) {
+            return false;
+        }
+        if ($new === null) {
+            $existing?->delete();
+        } else {
+            ChannelPrice::updateOrCreate(['variant_id' => $variant->id, 'channel_id' => $channel->id], ['price' => $new, 'source' => 'manual', 'price_rule_id' => null]);
+        }
+        ChangeLog::record($variant->product, 'Preis '.$channel->name, $old, $new, 'user', $variant, $userId);
+
+        return true;
     }
 
     private function apply(Product $product, Product|Variant $model, string $field, mixed $value, ?int $userId): int

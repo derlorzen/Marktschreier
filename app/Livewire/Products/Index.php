@@ -58,10 +58,59 @@ class Index extends Component
 
     public ?string $notice = null;
 
+    public ?int $bulkRuleId = null;
+
+    /** @var list<int> */
+    public array $bulkRuleChannels = [];
+
+    public bool $bulkOnlyIncrease = false;
+
+    /** Zusammenfassung der Vorschau, bevor ein Regelwerk auf viele Artikel angewendet wird. */
+    public ?array $bulkPreview = null;
+
+    public function mount(): void
+    {
+        $this->bulkRuleId = \App\Models\PriceRule::orderBy('name')->value('id');
+        $this->bulkRuleChannels = \App\Models\Channel::active()->pluck('id')->all();
+    }
+
+    public function updatedBulkAction(): void
+    {
+        $this->bulkPreview = null;
+    }
+
+    private function bulkRuleRows(): array
+    {
+        $rule = \App\Models\PriceRule::with('lines')->find($this->bulkRuleId);
+        if (! $rule) {
+            return [];
+        }
+        $variants = \App\Models\Variant::with(['product', 'channelPrices'])->whereIn('product_id', $this->targetIds())->get();
+        $channels = \App\Models\Channel::active()->whereIn('id', $this->bulkRuleChannels)->get();
+
+        return app(\App\Services\Pricing\PriceRuleApplier::class)->preview($variants, $rule, $channels, $this->bulkOnlyIncrease);
+    }
+
+    public function previewBulkRule(): void
+    {
+        if ($this->bulkRuleChannels === []) {
+            $this->addError('bulkValue', 'Bitte mindestens einen Kanal anhaken.');
+
+            return;
+        }
+        $rows = $this->bulkRuleRows();
+        $sum = app(\App\Services\Pricing\PriceRuleApplier::class)->summarize($rows);
+        $reasons = collect($rows)->whereNotNull('skip')->countBy('skip')->all();
+        $this->bulkPreview = $sum + ['reasons' => $reasons];
+    }
+
     private const SORTS = ['title' => 'title', 'vendor' => 'vendor', 'updated' => 'updated_at', 'stock' => 'variants_sum_stock', 'price' => 'variants_min_price'];
 
     public function updated(string $prop): void
     {
+        if (str_starts_with($prop, 'selected') || in_array($prop, ['bulkRuleId', 'selectAllMatching'], true)) {
+            $this->bulkPreview = null;
+        }
         if (in_array($prop, ['search', 'vendor', 'type', 'status', 'sync', 'missing'], true)) {
             $this->resetPage();
             $this->clearSelection();
@@ -148,6 +197,18 @@ class Index extends Component
             return;
         }
 
+        if ($this->bulkAction === 'price_rule') {
+            $rule = \App\Models\PriceRule::with('lines')->find($this->bulkRuleId);
+            if (! $rule || $this->bulkPreview === null) {
+                return;
+            }
+            $count = app(\App\Services\Pricing\PriceRuleApplier::class)->apply($this->bulkRuleRows(), $rule, auth()->id());
+            $this->notice = "Regelwerk „{$rule->name}“ angewendet: {$count} Preise geändert. Shopify-Preise sind als offene Änderung vorgemerkt.";
+            $this->reset('bulkAction', 'bulkPreview');
+
+            return;
+        }
+
         if ($this->bulkAction === 'push') {
             $n = 0;
             foreach (Product::whereIn('id', $ids)->whereIn('push_status', [Product::STATUS_PENDING, Product::STATUS_ERROR, Product::STATUS_CONFLICT])->pluck('id') as $id) {
@@ -196,6 +257,8 @@ class Index extends Component
             'vendors' => Product::whereNotNull('vendor')->where('vendor', '!=', '')->distinct()->orderBy('vendor')->pluck('vendor'),
             'types' => Product::whereNotNull('product_type')->where('product_type', '!=', '')->distinct()->orderBy('product_type')->pluck('product_type'),
             'total' => Product::count(),
+            'priceRules' => \App\Models\PriceRule::orderBy('name')->get(['id', 'name']),
+            'channels' => \App\Models\Channel::active()->get(),
             'selectedCount' => $this->selectAllMatching ? $products->total() : count($this->selected),
             'filtered' => $this->search !== '' || $this->vendor !== '' || $this->type !== '' || $this->status !== '' || $this->sync !== '' || $this->missing !== '',
         ]);

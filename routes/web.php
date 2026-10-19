@@ -40,6 +40,7 @@ Route::middleware('auth')->group(function () {
 
         return redirect()->route('products.index');
     })->name('products.close-all');
+    Route::livewire('/preise', \App\Livewire\Pricing::class)->name('pricing');
     Route::livewire('/abgleich', Sync::class)->name('sync');
     Route::livewire('/einstellungen', Settings::class)->name('settings');
 });

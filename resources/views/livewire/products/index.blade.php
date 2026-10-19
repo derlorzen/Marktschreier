@@ -70,6 +70,7 @@
                 <select class="input input-sm" style="width:auto" wire:model.live="bulkAction" aria-label="Gruppenfunktion">
                     <option value="">Gruppenfunktion wählen</option>
                     <option value="push">Zu Shopify übertragen</option>
+                    <option value="price_rule">Preise mit Regelwerk neu rechnen</option>
                     <option value="tag_add">Tag hinzufügen</option>
                     <option value="tag_remove">Tag entfernen</option>
                     <option value="vendor">Marke setzen</option>
@@ -86,12 +87,43 @@
                         <option value="ARCHIVED">Archiviert</option>
                     </select>
                 @endif
-                @if ($bulkAction)
+                @if ($bulkAction === 'price_rule')
+                    <select class="input input-sm" style="width:auto" wire:model.live="bulkRuleId" aria-label="Regelwerk">
+                        @foreach ($priceRules as $rule)<option value="{{ $rule->id }}">{{ $rule->name }}</option>@endforeach
+                    </select>
+                    @foreach ($channels as $ch)
+                        <label class="check"><input type="checkbox" value="{{ $ch->id }}" wire:model.live="bulkRuleChannels" wire:change="$set('bulkPreview', null)"> {{ $ch->name }}</label>
+                    @endforeach
+                    <label class="check"><input type="checkbox" wire:model.live="bulkOnlyIncrease" wire:change="$set('bulkPreview', null)"> Nur erhöhen</label>
+                    @if (! $bulkPreview)
+                        <button class="btn btn-sm btn-primary" wire:click="previewBulkRule">Vorschau <span class="spin" wire:loading wire:target="previewBulkRule"></span></button>
+                    @endif
+                @elseif ($bulkAction)
                     <button class="btn btn-sm btn-primary" wire:click="runBulk" wire:loading.attr="disabled">Ausführen <span class="spin" wire:loading wire:target="runBulk"></span></button>
                 @endif
                 @error('bulkValue') <span class="error">{{ $message }}</span> @enderror
                 <button class="linkbtn" style="margin-left:auto" wire:click="clearSelection">Auswahl aufheben</button>
             </div>
+            @if ($bulkAction === 'price_rule' && $bulkPreview)
+                <div class="bulkbar" style="background:var(--warn-tint);align-items:flex-start;flex-direction:column;gap:6px">
+                    @if ($bulkPreview['changed'])
+                        <strong>{{ $bulkPreview['changed'] }} Preise ändern sich: {{ $bulkPreview['up'] }} steigen, {{ $bulkPreview['down'] }} sinken.</strong>
+                    @else
+                        <strong>Es würde sich kein Preis ändern.</strong>
+                    @endif
+                    @if ($bulkPreview['worst'])
+                        <span>Größte Senkung: {{ number_format(abs($bulkPreview['worst']['d']) * 100, 0, ',', '.') }} % bei {{ $bulkPreview['worst']['name'] }} ({{ $bulkPreview['worst']['channel'] }}).</span>
+                    @endif
+                    @foreach ($bulkPreview['reasons'] as $reason => $n)
+                        <span class="muted small">{{ $n }} übersprungen: {{ $reason }}</span>
+                    @endforeach
+                    <span class="muted small">Einmalig: Es bleibt keine Regel an den Artikeln hängen. Shopify-Preise werden als offene Änderung vorgemerkt.</span>
+                    <div class="row">
+                        <button class="btn btn-sm btn-primary" wire:click="runBulk" @disabled(! $bulkPreview['changed'])>Übernehmen <span class="spin" wire:loading wire:target="runBulk"></span></button>
+                        <button class="btn btn-sm" wire:click="$set('bulkPreview', null)">Abbrechen</button>
+                    </div>
+                </div>
+            @endif
         @endif
 
         <div class="table-wrap">
