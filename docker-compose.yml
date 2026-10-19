@@ -1,0 +1,101 @@
+# Eine Marktschreier-Instanz je Kunde. Für Coolify als "Docker Compose"-Ressource anlegen,
+# Umgebungsvariablen dort setzen (siehe .env.example) und die Domain auf den Dienst "app" (Port 8080) legen.
+x-app: &app
+  build: .
+  image: ${IMAGE:-marktschreier:latest}
+  restart: unless-stopped
+  environment: &env
+    APP_NAME: Marktschreier
+    APP_ENV: production
+    APP_DEBUG: "false"
+    APP_KEY: ${APP_KEY:?APP_KEY fehlt, mit "php artisan key:generate --show" erzeugen}
+    APP_URL: ${APP_URL:-http://localhost:8080}
+    APP_LOCALE: de
+    DB_CONNECTION: pgsql
+    DB_HOST: postgres
+    DB_PORT: 5432
+    DB_DATABASE: marktschreier
+    DB_USERNAME: marktschreier
+    DB_PASSWORD: ${DB_PASSWORD:?DB_PASSWORD fehlt}
+    REDIS_HOST: redis
+    CACHE_STORE: redis
+    QUEUE_CONNECTION: redis
+    SESSION_DRIVER: redis
+    SESSION_SECURE_COOKIE: ${SESSION_SECURE_COOKIE:-true}
+    LOG_CHANNEL: stderr
+    LOG_LEVEL: ${LOG_LEVEL:-info}
+    SHOPIFY_SHOP: ${SHOPIFY_SHOP:-}
+    SHOPIFY_CLIENT_ID: ${SHOPIFY_CLIENT_ID:-}
+    SHOPIFY_CLIENT_SECRET: ${SHOPIFY_CLIENT_SECRET:-}
+    SHOPIFY_ADMIN_TOKEN: ${SHOPIFY_ADMIN_TOKEN:-}
+    SHOPIFY_API_VERSION: ${SHOPIFY_API_VERSION:-2026-10}
+    BILLBEE_API_KEY: ${BILLBEE_API_KEY:-}
+    BILLBEE_USERNAME: ${BILLBEE_USERNAME:-}
+    BILLBEE_API_PASSWORD: ${BILLBEE_API_PASSWORD:-}
+    BILLBEE_COST_PRICE_MODE: ${BILLBEE_COST_PRICE_MODE:-net}
+  depends_on:
+    postgres: { condition: service_healthy }
+    redis: { condition: service_healthy }
+
+services:
+  app:
+    <<: *app
+    ports:
+      - "${APP_PORT:-8080}:8080"
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "http://localhost:8080/up"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+
+  worker:
+    <<: *app
+    command: ["php", "/var/www/html/artisan", "queue:work", "--sleep=3", "--tries=1", "--timeout=3600", "--max-time=3600"]
+    environment:
+      <<: *env
+      AUTORUN_ENABLED: "false"
+    stop_signal: SIGTERM
+    healthcheck:
+      test: ["CMD", "healthcheck-queue"]
+      start_period: 10s
+
+  scheduler:
+    <<: *app
+    command: ["php", "/var/www/html/artisan", "schedule:work"]
+    environment:
+      <<: *env
+      AUTORUN_ENABLED: "false"
+    healthcheck:
+      test: ["CMD", "healthcheck-schedule"]
+      start_period: 10s
+
+  postgres:
+    image: postgres:17-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: marktschreier
+      POSTGRES_USER: marktschreier
+      POSTGRES_PASSWORD: ${DB_PASSWORD:?DB_PASSWORD fehlt}
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U marktschreier -d marktschreier"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    command: ["redis-server", "--appendonly", "yes"]
+    volumes:
+      - redis-data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  postgres-data:
+  redis-data:
