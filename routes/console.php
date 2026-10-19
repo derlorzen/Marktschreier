@@ -109,3 +109,7 @@ Schedule::call(function () {
         app(\App\Services\Alerts\AlertService::class)->resolve('backup:stale');
     }
 })->dailyAt('9:05')->timezone('Europe/Berlin')->name('backup-check');
+
+Schedule::job(new \App\Jobs\RunPriceWatches)->everyThirtyMinutes()
+    ->when(fn () => rescue(fn () => \App\Models\MarketplaceConnection::for('amazon')->isConnected() && \App\Models\PriceWatch::where('active', true)->exists(), false, false))
+    ->name('price-watches')->withoutOverlapping();

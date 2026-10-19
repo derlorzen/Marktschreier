@@ -29,6 +29,18 @@ class AppServiceProvider extends ServiceProvider
             }
             $alerts->resolveMissing('oversell', $keys);
         });
+        \App\Services\Alerts\AlertChecks::register('buybox', function (\App\Services\Alerts\AlertService $alerts) {
+            $keys = [];
+            foreach (\App\Models\PriceWatch::with('variant.product')->where('active', true)->get() as $w) {
+                if (($w->last_result['won'] ?? true) || ! $w->suggested_price) {
+                    continue;
+                }
+                $keys[] = $key = 'buybox:'.$w->id;
+                $alerts->raise($key, 'buybox', 'warn', "Buy Box verloren: {$w->variant->product->title}",
+                    'Vorschlag: '.\App\Support\Format::money($w->suggested_price).($w->last_result['note'] ?? null ? '. '.$w->last_result['note'] : '').'.', '/preiswaechter');
+            }
+            $alerts->resolveMissing('buybox', $keys);
+        });
         \Illuminate\Support\Facades\Gate::define('admin', fn (\App\Models\User $user) => $user->isAdmin() && $user->active);
         //
     }

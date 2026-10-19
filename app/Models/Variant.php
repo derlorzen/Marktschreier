@@ -35,6 +35,11 @@ class Variant extends Model
         return $this->belongsTo(Product::class);
     }
 
+    public function priceWatch(): \Illuminate\Database\Eloquent\Relations\HasOne
+    {
+        return $this->hasOne(PriceWatch::class);
+    }
+
     public function listings(): HasMany
     {
         return $this->hasMany(Listing::class);

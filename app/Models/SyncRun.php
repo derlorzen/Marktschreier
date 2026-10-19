@@ -44,7 +44,7 @@ class SyncRun extends Model
             return ($m[1] === 'listings' ? 'Angebote lesen: ' : 'Preise übertragen: ').($m[2] === 'ebay' ? 'eBay' : 'Amazon');
         }
 
-        return [self::TYPE_SHOPIFY_IMPORT => 'Import aus Shopify', self::TYPE_SHOPIFY_PUSH => 'Übertragung zu Shopify', self::TYPE_BILLBEE => 'Abgleich mit Billbee', self::TYPE_BILLBEE_ORDERS => 'Verkäufe aus Billbee'][$this->type] ?? $this->type;
+        return [self::TYPE_SHOPIFY_IMPORT => 'Import aus Shopify', self::TYPE_SHOPIFY_PUSH => 'Übertragung zu Shopify', self::TYPE_BILLBEE => 'Abgleich mit Billbee', self::TYPE_BILLBEE_ORDERS => 'Verkäufe aus Billbee', 'buybox' => 'Preiswächter', 'ads_sync' => 'Werbung lesen', 'tiktok_listings' => 'TikTok Shop lesen'][$this->type] ?? $this->type;
     }
 
     public static function lastSuccessful(string $type): ?self
