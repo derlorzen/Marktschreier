@@ -22,7 +22,7 @@ Route::post('/logout', function (Request $request) {
 })->middleware('auth')->name('logout');
 
 Route::middleware('auth')->group(function () {
-    Route::redirect('/', '/artikel');
+    Route::livewire('/', \App\Livewire\Dashboard::class)->name('dashboard');
     Route::livewire('/artikel', Index::class)->name('products.index');
     Route::livewire('/artikel/{product}', Edit::class)->name('products.edit');
     Route::get('/artikel/{product}/schliessen', function (Product $product) {
@@ -40,6 +40,7 @@ Route::middleware('auth')->group(function () {
 
         return redirect()->route('products.index');
     })->name('products.close-all');
+    Route::livewire('/chancen', \App\Livewire\Opportunities::class)->name('opportunities');
     Route::livewire('/preise', \App\Livewire\Pricing::class)->name('pricing');
     Route::livewire('/abgleich', Sync::class)->name('sync');
     Route::livewire('/einstellungen', Settings::class)->name('settings');

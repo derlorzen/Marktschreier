@@ -11,7 +11,8 @@ class AppServiceProvider extends ServiceProvider
      */
     public function register(): void
     {
-        //
+        // Eine Auswertung je Anfrage bzw. Job, damit mehrere Stellen dieselben Zahlen teilen.
+        $this->app->scoped(\App\Services\Sales\SalesStats::class);
     }
 
     /**

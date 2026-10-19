@@ -8,3 +8,5 @@ Laravel 13 + Livewire 4 (Klassen-Komponenten in `app/Livewire`, Views in `resour
 - Zu Shopify nur geänderte Felder senden (`ProductPusher::buildPayload`).
 - Inline-`@php(...)` nicht mit `@php ... @endphp` in derselben View mischen (Blade-Fehler).
 - Tests: `php artisan test`, externe APIs über `Tests\Concerns\FakesApis` (Antwort-Warteschlangen).
+- Preise je Marktplatz liegen in `channel_prices`; ohne Eintrag gilt der Shopify-Preis (`Variant::priceOn`). Regelwerke nie dauerhaft am Artikel speichern.
+- Bestellungen ohne Kundendaten speichern (keine Namen, Adressen, E-Mails).

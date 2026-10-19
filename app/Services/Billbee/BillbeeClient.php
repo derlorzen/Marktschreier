@@ -57,6 +57,34 @@ class BillbeeClient
         ];
     }
 
+    /**
+     * Bestellungen seitenweise. Mit $modifiedSince nur seitdem geänderte, sonst ab $orderedSince.
+     *
+     * @return iterable<array<string, mixed>>
+     */
+    public function orders(?\DateTimeInterface $orderedSince = null, ?\DateTimeInterface $modifiedSince = null): iterable
+    {
+        $page = 1;
+        while (true) {
+            $query = ['page' => $page, 'pageSize' => self::PAGE_SIZE];
+            if ($modifiedSince) {
+                $query['modifiedAtMin'] = $modifiedSince->format('c');
+            } elseif ($orderedSince) {
+                $query['minOrderDate'] = $orderedSince->format('c');
+            }
+            $json = $this->get('orders', $query);
+            $data = $json['Data'] ?? [];
+            foreach ($data as $order) {
+                yield $order;
+            }
+            $totalPages = isset($json['Paging']['TotalPages']) ? (int) $json['Paging']['TotalPages'] : null;
+            if ($data === [] || ($totalPages !== null && $page >= $totalPages) || ($totalPages === null && count($data) < self::PAGE_SIZE)) {
+                return;
+            }
+            $page++;
+        }
+    }
+
     /** @return iterable<array<string, mixed>> alle Produkte, seitenweise geladen */
     public function allProducts(): iterable
     {

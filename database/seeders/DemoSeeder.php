@@ -60,11 +60,54 @@ class DemoSeeder extends Seeder
             }
         }
 
+        $this->seedOrders();
+
         // Ein paar lokale Änderungen, damit Status und Diff sichtbar sind.
         $p = Product::where('title', 'like', 'Spielmatte%')->first();
         app(\App\Services\ProductEditor::class)->update($p, ['title' => 'Spielmatte 60x35 cm mit genähten Rändern', 'seo_title' => 'Spielmatte genäht kaufen'], [$p->variants[0]->id => ['price' => '22.90']]);
         $c = Product::where('title', 'like', 'Binder%')->first();
         $c->update(['push_status' => Product::STATUS_CONFLICT, 'push_error' => 'Dieselben Felder wurden hier und in Shopify geändert. Es gilt der Wert aus Marktschreier, bitte prüfen und übertragen.']);
+    }
+
+    /** Verkäufe der letzten 120 Tage, ohne Kundendaten. Deterministisch, damit Vorführungen gleich aussehen. */
+    private function seedOrders(): void
+    {
+        mt_srand(42);
+        $channels = \App\Models\Channel::pluck('id', 'key');
+        // Welche Artikel wo laufen: Index in $items => [Kanal => Verkäufe pro Woche]
+        $plan = [
+            0 => ['shopify' => 3, 'amazon' => 6, 'ebay' => 2],
+            1 => ['shopify' => 8, 'amazon' => 14],
+            2 => ['shopify' => 2, 'ebay' => 1],
+            3 => ['amazon' => 9, 'ebay' => 4],
+            4 => ['shopify' => 1],
+            6 => ['shopify' => 3, 'amazon' => 2],
+            7 => ['ebay' => 1],
+        ];
+        $products = Product::with('variants')->orderBy('id')->get()->values();
+        $id = 900000;
+        for ($day = 120; $day >= 0; $day--) {
+            foreach ($plan as $idx => $perChannel) {
+                foreach ($perChannel as $key => $perWeek) {
+                    if (mt_rand(1, 700) > $perWeek * 100) {
+                        continue;
+                    }
+                    $variant = $products[$idx]->variants->random();
+                    $qty = mt_rand(1, 10) > 8 ? 2 : 1;
+                    $gross = (float) $variant->price * $qty;
+                    $order = \App\Models\Order::create([
+                        'billbee_id' => ++$id, 'order_number' => 'D'.$id, 'platform' => ucfirst($key), 'channel_id' => $channels[$key],
+                        'state' => 4, 'ordered_at' => now()->subDays($day)->setTime(mt_rand(7, 22), mt_rand(0, 59)),
+                        'total_gross' => $gross, 'shipping_gross' => 0, 'currency' => 'EUR',
+                    ]);
+                    \App\Models\OrderItem::create([
+                        'order_id' => $order->id, 'variant_id' => $variant->id, 'sku' => $variant->sku, 'ean' => $variant->barcode, 'title' => $products[$idx]->title,
+                        'quantity' => $qty, 'total_gross' => $gross, 'tax_amount' => round($gross - $gross / 1.19, 2), 'cost_net' => $variant->fresh()->cost_net,
+                    ]);
+                }
+            }
+        }
+        \App\Models\SyncRun::create(['type' => \App\Models\SyncRun::TYPE_BILLBEE_ORDERS, 'status' => 'ok', 'stats' => ['orders' => $id - 900000], 'message' => 'Beispieldaten', 'started_at' => now(), 'finished_at' => now()]);
     }
 
     private function checkDigit(string $twelve): int

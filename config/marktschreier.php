@@ -23,5 +23,6 @@ return [
     'sync' => [
         'billbee_interval_minutes' => (int) env('BILLBEE_SYNC_MINUTES', 15),
         'shopify_interval_minutes' => (int) env('SHOPIFY_SYNC_MINUTES', 60),
+        'orders_interval_minutes' => (int) env('BILLBEE_ORDERS_MINUTES', 30),
     ],
 ];

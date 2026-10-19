@@ -32,6 +32,16 @@ Artisan::command('marktschreier:import {--full : Alle Artikel statt nur geänder
     $this->table(['Wert', 'Anzahl'], collect($stats)->map(fn ($v, $k) => [$k, is_array($v) ? count($v) : $v])->values());
 })->purpose('Artikel aus Shopify importieren');
 
+Artisan::command('marktschreier:orders {--rematch : Vorhandene Bestellungen neu Kanälen und Artikeln zuordnen}', function () {
+    if ($this->option('rematch')) {
+        $this->info(app(\App\Services\Billbee\OrderSync::class)->rematch().' Zuordnungen geändert');
+
+        return;
+    }
+    $stats = app(\App\Services\Billbee\OrderSync::class)->run();
+    $this->table(['Wert', 'Anzahl'], collect($stats)->map(fn ($v, $k) => [$k, is_array($v) ? count($v) : $v])->values());
+})->purpose('Verkäufe aus Billbee lesen');
+
 Artisan::command('marktschreier:billbee', function () {
     $stats = app(StockAndCostSync::class)->run();
     $this->table(['Wert', 'Anzahl'], collect($stats)->map(fn ($v, $k) => [$k, is_array($v) ? count($v) : $v])->values());
@@ -43,6 +53,11 @@ Schedule::job(new SyncBillbee)
     ->cron($every((int) config('marktschreier.sync.billbee_interval_minutes', 15)))
     ->when(fn () => app(BillbeeClient::class)->isConfigured())
     ->name('billbee-sync')->withoutOverlapping();
+
+Schedule::job(new \App\Jobs\SyncBillbeeOrders)
+    ->cron($every((int) config('marktschreier.sync.orders_interval_minutes', 30)))
+    ->when(fn () => app(BillbeeClient::class)->isConfigured())
+    ->name('billbee-orders')->withoutOverlapping();
 
 Schedule::job(new ImportShopifyProducts)
     ->cron($every((int) config('marktschreier.sync.shopify_interval_minutes', 60)))

@@ -84,6 +84,7 @@ class Pricing extends Component
     public function save(): void
     {
         $this->validate();
+        $platformsBefore = Channel::pluck('billbee_platforms', 'id')->all();
         DB::transaction(function () {
             foreach ($this->channels as $id => $c) {
                 Channel::whereKey($id)->update([
@@ -109,6 +110,10 @@ class Pricing extends Component
                 }
             }
         });
+        // Geänderte Plattformnamen sofort auf vorhandene Bestellungen anwenden.
+        if (Channel::pluck('billbee_platforms', 'id')->all() !== $platformsBefore) {
+            app(\App\Services\Billbee\OrderSync::class)->rematch();
+        }
         $this->load();
         $this->notice = 'Gespeichert.';
     }

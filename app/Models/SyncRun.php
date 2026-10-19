@@ -9,6 +9,7 @@ class SyncRun extends Model
     public const TYPE_SHOPIFY_IMPORT = 'shopify_import';
     public const TYPE_SHOPIFY_PUSH = 'shopify_push';
     public const TYPE_BILLBEE = 'billbee_sync';
+    public const TYPE_BILLBEE_ORDERS = 'billbee_orders';
 
     protected $guarded = ['id'];
 
@@ -34,7 +35,7 @@ class SyncRun extends Model
 
     public function typeLabel(): string
     {
-        return [self::TYPE_SHOPIFY_IMPORT => 'Import aus Shopify', self::TYPE_SHOPIFY_PUSH => 'Übertragung zu Shopify', self::TYPE_BILLBEE => 'Abgleich mit Billbee'][$this->type] ?? $this->type;
+        return [self::TYPE_SHOPIFY_IMPORT => 'Import aus Shopify', self::TYPE_SHOPIFY_PUSH => 'Übertragung zu Shopify', self::TYPE_BILLBEE => 'Abgleich mit Billbee', self::TYPE_BILLBEE_ORDERS => 'Verkäufe aus Billbee'][$this->type] ?? $this->type;
     }
 
     public static function lastSuccessful(string $type): ?self

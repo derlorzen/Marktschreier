@@ -10,12 +10,12 @@ class Format
             return '–';
         }
 
-        return number_format((float) $value, $decimals, ',', '.').' €';
+        return number_format((float) $value, $decimals, ',', '.')."\u{00A0}€";
     }
 
     public static function percent(?float $value): string
     {
-        return $value === null ? '–' : number_format($value, 1, ',', '.').' %';
+        return $value === null ? '–' : number_format($value, 1, ',', '.')."\u{00A0}%";
     }
 
     /** Eingaben wie "12,90" oder "1.299,00" in einen Dezimalwert wandeln. */

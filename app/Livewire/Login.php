@@ -35,7 +35,7 @@ class Login extends Component
         RateLimiter::clear($key);
         session()->regenerate();
 
-        return $this->redirectIntended(route('products.index'), navigate: false);
+        return $this->redirectIntended(route('dashboard'), navigate: false);
     }
 
     public function render()

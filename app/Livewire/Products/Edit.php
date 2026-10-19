@@ -311,7 +311,12 @@ class Edit extends Component
         $calc = new \App\Services\Pricing\PriceCalculator($vat);
         $priceVariants = $this->tab === 'preise' ? $p->variants()->with('channelPrices')->get() : collect();
 
+        $sales = app(\App\Services\Sales\SalesStats::class)->period(30)['variants'];
+        $sold30 = $p->variants->sum(fn ($v) => $sales[$v->id]['quantity'] ?? 0);
+
         return view('livewire.products.edit', [
+            'sold30' => $sold30,
+            'hasOrders' => \App\Models\Order::exists(),
             'channels' => $channels,
             'calc' => $calc,
             'priceVariants' => $priceVariants,

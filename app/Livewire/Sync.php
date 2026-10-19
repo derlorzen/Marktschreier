@@ -43,6 +43,20 @@ class Sync extends Component
         $this->notice = 'Billbee-Abgleich gestartet.';
     }
 
+    public function syncOrders(): void
+    {
+        if ($this->isRunning(SyncRun::TYPE_BILLBEE_ORDERS)) {
+            $this->notice = 'Das Einlesen der Verkäufe läuft bereits.';
+
+            return;
+        }
+        $run = SyncRun::create(['type' => SyncRun::TYPE_BILLBEE_ORDERS, 'status' => 'queued', 'stats' => []]);
+        \App\Jobs\SyncBillbeeOrders::dispatch($run->id);
+        $this->notice = SyncRun::lastSuccessful(SyncRun::TYPE_BILLBEE_ORDERS)
+            ? 'Neue und geänderte Bestellungen werden geholt.'
+            : 'Die Bestellungen der letzten 12 Monate werden geholt. Das kann einige Minuten dauern.';
+    }
+
     public function pushAll(): void
     {
         $ids = Product::where('push_status', Product::STATUS_PENDING)->pluck('id');
@@ -71,6 +85,8 @@ class Sync extends Component
             'billbeeReady' => app(BillbeeClient::class)->isConfigured(),
             'lastImport' => SyncRun::lastSuccessful(SyncRun::TYPE_SHOPIFY_IMPORT),
             'lastBillbee' => SyncRun::lastSuccessful(SyncRun::TYPE_BILLBEE),
+            'lastOrders' => SyncRun::lastSuccessful(SyncRun::TYPE_BILLBEE_ORDERS),
+            'orderCount' => \App\Models\Order::count(),
             'counts' => Product::selectRaw('push_status, count(*) as n')->groupBy('push_status')->pluck('n', 'push_status'),
         ]);
     }

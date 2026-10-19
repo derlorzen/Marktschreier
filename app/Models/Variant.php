@@ -56,9 +56,10 @@ class Variant extends Model
 
     public function label(): string
     {
-        $opts = array_filter([$this->option1, $this->option2, $this->option3]);
+        // "Default Title" ist Shopifys Platzhalter für Artikel ohne Varianten.
+        $opts = array_filter([$this->option1, $this->option2, $this->option3], fn ($o) => $o && $o !== 'Default Title');
 
-        return $opts ? implode(' / ', $opts) : ($this->title ?: 'Standard');
+        return $opts ? implode(' / ', $opts) : ($this->title && $this->title !== 'Default Title' ? $this->title : 'Standard');
     }
 
     /** Rohertrag netto je Stück im Shop (Preis brutto inkl. 19 % MwSt.). */

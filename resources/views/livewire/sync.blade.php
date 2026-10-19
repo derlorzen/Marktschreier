@@ -1,6 +1,7 @@
 @php
     $labels = ['products_new' => 'neu', 'products_updated' => 'aktualisiert', 'variants' => 'Varianten', 'conflicts' => 'Konflikte',
-        'billbee_products' => 'Billbee-Artikel', 'matched' => 'zugeordnet', 'by_sku' => 'per SKU', 'by_ean' => 'per GTIN', 'unmatched' => 'ohne Treffer', 'ambiguous' => 'SKU doppelt', 'fields' => 'Felder'];
+        'billbee_products' => 'Billbee-Artikel', 'matched' => 'zugeordnet', 'by_sku' => 'per SKU', 'by_ean' => 'per GTIN', 'unmatched' => 'ohne Treffer', 'ambiguous' => 'SKU doppelt', 'fields' => 'Felder',
+        'orders' => 'Bestellungen', 'items' => 'Positionen', 'items_unmatched' => 'Positionen ohne Artikel', 'orders_without_channel' => 'ohne Kanal'];
     $fmt = fn ($d) => $d?->timezone('Europe/Berlin')->format('d.m.Y H:i');
 @endphp
 <div @if ($active) wire:poll.3s @endif>
@@ -27,10 +28,14 @@
         </div>
         <div class="card card-pad stack">
             <h2>Billbee</h2>
-            <p class="muted small" style="margin:0">Liest Einkaufspreis und Bestand, Zuordnung über SKU, sonst GTIN. Billbee bleibt führend für Bestand und Aufträge, Marktschreier schreibt dort nichts.</p>
+            <p class="muted small" style="margin:0">Liest Einkaufspreis, Bestand und Verkäufe (ohne Kundendaten), Zuordnung über SKU, sonst GTIN. Billbee bleibt führend für Bestand und Aufträge, Marktschreier schreibt dort nichts.</p>
             @if ($billbeeReady)
-                <div class="small">Letzter Abgleich: {{ $lastBillbee ? $fmt($lastBillbee->finished_at) : 'noch keiner' }}</div>
-                <div><button class="btn btn-primary" wire:click="syncBillbee" wire:loading.attr="disabled">Jetzt abgleichen</button></div>
+                <div class="small">EK und Bestand: {{ $lastBillbee ? $fmt($lastBillbee->finished_at) : 'noch nicht abgeglichen' }}</div>
+                <div class="small">Verkäufe: {{ $lastOrders ? $fmt($lastOrders->finished_at).', '.number_format($orderCount, 0, ',', '.').' Bestellungen' : 'noch nicht eingelesen' }}</div>
+                <div class="row">
+                    <button class="btn btn-primary" wire:click="syncBillbee" wire:loading.attr="disabled">EK und Bestand holen</button>
+                    <button class="btn" wire:click="syncOrders" wire:loading.attr="disabled">Verkäufe holen</button>
+                </div>
             @else
                 <div class="notice notice-warn small">Noch nicht eingerichtet. <a href="{{ route('settings') }}" wire:navigate>Zu den Einstellungen</a></div>
             @endif

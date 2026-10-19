@@ -32,6 +32,7 @@
         <div class="kpi"><div class="label">EK netto (Billbee)</div><div class="value">{{ Format::money($costMin) }}</div></div>
         <div class="kpi"><div class="label">Marge im Shop (Ø)</div><div class="value">{{ Format::percent($marginAvg) }}</div></div>
         <div class="kpi"><div class="label">Bestand (Billbee)</div><div class="value">{{ $hasStock ? number_format($stock, 0, ',', '.') : '–' }}</div></div>
+        <div class="kpi"><div class="label">Verkauft (30 Tage)</div><div class="value">{{ $hasOrders ? number_format($sold30, 0, ',', '.') : '–' }}</div></div>
         <div class="kpi"><div class="label">Status in Shopify</div><div class="value" style="font-size:16px">{{ Format::shopifyStatus($product->status) }}</div></div>
     </div>
 

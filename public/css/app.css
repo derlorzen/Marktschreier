@@ -190,3 +190,40 @@ textarea.input { min-height: 140px; resize: vertical; line-height: 1.5; }
 .auth .card { width: 100%; max-width: 380px; }
 .grid-2 > .card, .grid-3 > .card { margin-top: 0; }
 @media (max-width: 860px) { .filters select.input { flex: 1 1 100%; } }
+
+/* Zeitraumschalter */
+.seg { display: inline-flex; border: 1px solid var(--line-2); border-radius: var(--radius); overflow: hidden; background: var(--surface); }
+.seg-btn { border: 0; background: none; padding: 7px 12px; font: inherit; font-size: 14px; font-weight: 600; color: var(--ink-2); cursor: pointer; }
+.seg-btn + .seg-btn { border-left: 1px solid var(--line-2); }
+.seg-btn.is-active { background: var(--ink); color: var(--surface); }
+
+/* Umsatz pro Tag: eine Reihe, Balken mit Hover-Tooltip */
+.daychart { display: flex; align-items: flex-end; gap: 2px; height: 160px; border-bottom: 1px solid var(--line-2); }
+.daybar { position: relative; flex: 1 1 0; height: 100%; display: flex; align-items: flex-end; outline: none; }
+.daybar .fill { display: block; width: 100%; background: var(--accent); border-radius: 4px 4px 0 0; min-height: 0; }
+.daybar:hover .fill, .daybar:focus .fill { background: var(--accent-strong); }
+.daybar .tip { display: none; position: absolute; bottom: calc(100% + 6px); left: 50%; transform: translateX(-50%); background: var(--inverse); color: #fff; font-size: 12px; padding: 5px 8px; border-radius: 6px; white-space: nowrap; z-index: 5; pointer-events: none; }
+.daybar:hover .tip, .daybar:focus .tip { display: block; }
+.daybar:first-child .tip { left: 0; transform: none; }
+.daybar:last-child .tip { left: auto; right: 0; transform: none; }
+
+.hbar { height: 8px; border-radius: 4px; background: var(--tint); overflow: hidden; margin-bottom: 3px; }
+.hbar span { display: block; height: 100%; background: var(--accent); border-radius: 4px; }
+
+/* Chancen */
+.opp { display: flex; gap: 18px; padding: 16px 18px; margin-bottom: 12px; align-items: flex-start; }
+.card.opp + .card.opp { margin-top: 0; }
+.opp-main { flex: 1 1 auto; min-width: 0; }
+.opp-text { margin: 4px 0 0; color: var(--ink-2); font-size: 14px; }
+.opp-side { flex: 0 0 180px; display: flex; flex-direction: column; gap: 8px; align-items: stretch; text-align: right; }
+.opp-value { font-size: 18px; font-weight: 700; color: var(--accent-strong); font-variant-numeric: tabular-nums; }
+.opp-value span { display: block; font-size: 12px; font-weight: 400; color: var(--muted); }
+.facts { display: flex; flex-wrap: wrap; gap: 6px 18px; margin: 10px 0 0; font-size: 13px; }
+.facts dt { color: var(--muted); }
+.facts dd { margin: 0; font-weight: 600; font-variant-numeric: tabular-nums; }
+@media (max-width: 700px) { .opp { flex-direction: column; } .opp-side { flex-basis: auto; width: 100%; text-align: left; } }
+.chance-row { display: flex; align-items: center; gap: 12px; padding: 12px 18px; border-bottom: 1px solid var(--line); color: var(--ink); text-decoration: none; }
+.chance-row:last-child { border-bottom: 0; }
+.chance-row:hover { background: var(--tint-2); }
+.chance-title { flex: 1; min-width: 0; font-weight: 500; }
+@media (max-width: 700px) { .chance-row { flex-wrap: wrap; } }

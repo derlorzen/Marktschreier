@@ -6,7 +6,10 @@ Schlanke Artikelverwaltung für Shopify-Händler mit Billbee. Stufe 1:
 - **Artikelverwaltung**: Suche, Filter, Gruppenfunktionen, Detailansicht mit Reitern (geöffnete Artikel bleiben als Tabs offen).
 - **Zurückschreiben**: Nach dem Import ist Marktschreier führend für Texte, Tags, Status, SEO, Preise, SKU und GTIN. Geänderte Felder werden erst nach Freigabe zu Shopify übertragen, und zwar nur die geänderten.
 - **Billbee (nur lesend)**: Einkaufspreis und Bestand je Variante, Zuordnung über SKU, sonst GTIN. Billbee bleibt führend für Bestand und Aufträge.
-- **Verlauf**: Jede Änderung mit Quelle (Benutzer, Import, Übertragung).
+- **Verlauf**: Jede Änderung mit Quelle (Benutzer, Import, Übertragung, Preisregel).
+- **Kanäle und Preisregeln**: Gebühren und Versand je Kanal, Regelwerke mit Zielmarge, Mindestgewinn und Preisendung. Ein Regelwerk wird nur auf Klick angewendet (im Artikel oder per Gruppenfunktion, immer mit Vorschau) und bleibt danach nicht am Artikel hängen.
+- **Verkäufe**: Bestellungen aus Billbee (ohne Kundendaten), Umsatz und Gewinn je Kanal und Artikel auf der Startseite.
+- **Chancen**: Regelbasierter Chancenfinder. Ohne Werbebudget: fehlt auf einem Kanal, im Shop nicht aktiv, Daten unvollständig, zu wenig Gewinn, bald ausverkauft, liegt auf Lager. Mit Werbung: Artikel, bei denen sich Anzeigen rechnen, mit Werbekosten-Grenze (Break-even-ACoS), Ziel-ACoS und Startbudget.
 
 ## Wer schreibt welches Feld
 
@@ -15,7 +18,8 @@ Schlanke Artikelverwaltung für Shopify-Händler mit Billbee. Stufe 1:
 | Titel, Beschreibung, Marke, Produktart, Tags, Status, SEO | Marktschreier | → Shopify nach Freigabe |
 | Preis, Streichpreis, SKU, GTIN | Marktschreier | → Shopify nach Freigabe |
 | Bilder, neue Varianten | Shopify | → Marktschreier (vorerst nur Anzeige) |
-| Einkaufspreis, Bestand | Billbee | → Marktschreier, nie zurück |
+| Einkaufspreis, Bestand, Bestellungen | Billbee | → Marktschreier, nie zurück |
+| Preise je Marktplatz | Marktschreier | vorerst nur hier, Übertragung kommt mit den Marktplatz-Anbindungen |
 | Merkmale | Marktschreier | bleiben lokal (für spätere Marktplätze) |
 
 Ändern sich dasselbe Feld hier und in Shopify zwischen zwei Abgleichen, bleibt der Wert aus Marktschreier und der Artikel wird als **Konflikt** markiert. Mit „Speichern“ in der Detailansicht gilt er als geprüft.
@@ -40,7 +44,7 @@ Jeder Kunde bekommt eine eigene Instanz mit eigener Datenbank. `docker-compose.y
 
 - `app` (nginx + PHP-FPM, Port 8080, führt beim Start die Migrationen aus)
 - `worker` (Queue: Importe, Übertragungen)
-- `scheduler` (Billbee alle 15 Minuten, Shopify-Änderungen stündlich)
+- `scheduler` (Billbee EK und Bestand alle 15 Minuten, Verkäufe alle 30 Minuten, Shopify-Änderungen stündlich)
 - `postgres`, `redis`
 
 In Coolify: neue Ressource „Docker Compose“ aus dem Repo, Umgebungsvariablen setzen, Domain auf `app:8080`.
@@ -83,6 +87,7 @@ API-Key bei Billbee anfragen (support@billbee.io), in Billbee unter Einstellunge
 php artisan marktschreier:user {email} {name?}   Benutzer anlegen oder Passwort setzen
 php artisan marktschreier:import [--full]       Shopify-Import (ohne --full nur Änderungen)
 php artisan marktschreier:billbee               EK und Bestand aus Billbee lesen
+php artisan marktschreier:orders [--rematch]    Verkäufe aus Billbee lesen (erstmals 12 Monate)
 ```
 
 ## Aufbau
@@ -90,5 +95,8 @@ php artisan marktschreier:billbee               EK und Bestand aus Billbee lesen
 - `app/Services/Shopify` – GraphQL-Client (Drosselung, Wiederholungen), Import, Übertragung
 - `app/Services/Billbee` – lesender Client (2 Anfragen/s), Abgleich EK und Bestand
 - `app/Services/ProductEditor.php` – alle Änderungen aus der Oberfläche inkl. Verlauf
+- `app/Services/Pricing` – Rechenkern (Gewinn, Preis aus EK) und einmaliges Anwenden von Regelwerken
+- `app/Services/Sales/SalesStats.php` – Umsatz und Gewinn aus den Bestellungen
+- `app/Services/Opportunities` – Chancenfinder, Schwellen als Konstanten in `OpportunityFinder`
 - `app/Models/Concerns/TracksShopifySync.php` – merkt sich den letzten Shopify-Stand und erkennt offene Änderungen
 - `app/Livewire` – Oberfläche (Livewire 4, schlichtes CSS in `public/css/app.css`, kein Build-Schritt)
