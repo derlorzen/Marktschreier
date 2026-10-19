@@ -48,6 +48,11 @@ return [
         'authorize_url' => 'https://eu.account.amazon.com/ap/oa',
         'token_url' => 'https://api.amazon.co.uk/auth/o2/token',
     ],
+    // Optional: Textvorschläge über die Claude API
+    'ai' => [
+        'api_key' => env('ANTHROPIC_API_KEY'),
+        'model' => env('ANTHROPIC_MODEL', 'claude-sonnet-5-5'),
+    ],
     'sync' => [
         'billbee_interval_minutes' => (int) env('BILLBEE_SYNC_MINUTES', 15),
         'shopify_interval_minutes' => (int) env('SHOPIFY_SYNC_MINUTES', 60),

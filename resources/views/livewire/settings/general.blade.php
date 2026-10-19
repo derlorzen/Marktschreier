@@ -18,6 +18,13 @@
                 <input class="input num" style="max-width:140px" wire:model="minProfit" inputmode="decimal">
                 @error('minProfit') <span class="error">{{ $message }}</span> @enderror
             </label>
+            <label class="field">Claude-API-Schlüssel für KI-Textvorschläge <span class="hint">{{ $hasAiKey ? 'gespeichert, leer lassen zum Behalten' : 'optional, von console.anthropic.com' }}</span>
+                <input class="input mono" type="password" wire:model="aiKey" placeholder="{{ $hasAiKey ? '••••••••' : 'sk-ant-…' }}" autocomplete="new-password">
+            </label>
+            <label class="field">Modell
+                <input class="input mono" wire:model="aiModel">
+            </label>
+            <p class="small muted span-2" style="margin:0">Für Vorschläge werden nur Titel, Beschreibung, Marke, Merkmale und Varianten des Artikels an die Claude API geschickt, keine Kunden- oder Bestelldaten.</p>
             <div><button class="btn btn-primary" type="submit">Speichern</button></div>
         </div>
     </form>

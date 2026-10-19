@@ -68,7 +68,8 @@ class OpportunityFinder
             }
         }
 
-        $products = Product::with(['variants.channelPrices', 'variants.listings', 'images:id,product_id'])->withCount('attributeValues')->get();
+        $amazonChannel = $marketplaces->firstWhere('key', 'amazon');
+        $products = Product::with(['variants.channelPrices', 'variants.listings', 'images:id,product_id', 'channelContents'])->withCount('attributeValues')->get();
         $out = [];
 
         foreach ($products as $product) {
@@ -156,6 +157,10 @@ class OpportunityFinder
             }
             if ($product->attribute_values_count === 0 && $marketplaces->isNotEmpty()) {
                 $gaps[] = 'keine Merkmale für Marktplätze';
+            }
+            if ($amazonChannel && $variants->contains(fn ($v) => $v->listings->contains(fn ($l) => $l->channel_id === $amazonChannel->id && $l->status === 'active'))
+                && empty($product->channelContents->firstWhere('channel_id', $amazonChannel->id)?->bullets)) {
+                $gaps[] = 'keine Amazon-Stichpunkte';
             }
             if ($gaps && ($units90 > 0 || ($knownStock && $stock > 0))) {
                 $out[] = new Opportunity(

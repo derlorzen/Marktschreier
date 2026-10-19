@@ -232,4 +232,45 @@ class AmazonService
             'our_price' => [['schedule' => [['value_with_tax' => round($price, 2)]]]],
         ];
     }
+
+    /**
+     * Titel, Stichpunkte, Suchbegriffe und Beschreibung für alle Amazon-SKUs des Artikels übertragen.
+     *
+     * @return array{ok: int, failed: int, errors: list<string>}
+     */
+    public function pushContent(\App\Models\Product $product, \App\Models\ChannelContent $content): array
+    {
+        $channel = $this->channel();
+        $mp = $this->client->marketplaceId();
+        $val = fn ($v) => [['value' => $v, 'language_tag' => 'de_DE', 'marketplace_id' => $mp]];
+        $patches = [['op' => 'replace', 'path' => '/attributes/item_name', 'value' => $val($content->effectiveTitle())]];
+        if ($content->bullets) {
+            $patches[] = ['op' => 'replace', 'path' => '/attributes/bullet_point', 'value' => collect($content->bullets)->map(fn ($b) => $val($b)[0])->values()->all()];
+        }
+        if ($content->search_terms) {
+            $patches[] = ['op' => 'replace', 'path' => '/attributes/generic_keyword', 'value' => $val($content->search_terms)];
+        }
+        if ($desc = trim(strip_tags($content->effectiveDescription(), '<p><br><ul><li><b><strong>'))) {
+            $patches[] = ['op' => 'replace', 'path' => '/attributes/product_description', 'value' => $val($desc)];
+        }
+        $result = ['ok' => 0, 'failed' => 0, 'errors' => []];
+        $listings = Listing::where('channel_id', $channel->id)->whereIn('variant_id', $product->variants()->pluck('id'))->whereNotNull('sku')->get();
+        foreach ($listings as $l) {
+            try {
+                $json = $this->client->request('PATCH', '/listings/2021-08-01/items/'.$this->client->sellerId().'/'.rawurlencode($l->sku), [
+                    'marketplaceIds' => $mp, 'issueLocale' => 'de_DE',
+                ], ['productType' => $l->data['product_type'] ?? 'PRODUCT', 'patches' => $patches]);
+                $errors = collect($json['issues'] ?? [])->where('severity', 'ERROR')->pluck('message')->all();
+                if (($json['status'] ?? '') !== 'ACCEPTED' || $errors) {
+                    throw new MarketplaceException(implode(' ', $errors) ?: 'Abgelehnt');
+                }
+                $result['ok']++;
+            } catch (MarketplaceException $e) {
+                $result['failed']++;
+                $result['errors'][] = $l->sku.': '.$e->getMessage();
+            }
+        }
+
+        return $result;
+    }
 }

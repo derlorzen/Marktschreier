@@ -20,11 +20,16 @@ class General extends Component
 
     public ?string $notice = null;
 
+    public string $aiKey = '';
+
+    public string $aiModel = '';
+
     public function mount(): void
     {
         $this->company = (string) Setting::get('general.company');
         $this->vatRate = Format::decimalForInput(Setting::get('billbee.vat_rate', 19));
         $this->minProfit = Format::decimalForInput(Setting::get('opportunities.min_profit', 1));
+        $this->aiModel = (string) Setting::get('ai.model', 'claude-sonnet-5-5');
     }
 
     public function save(): void
@@ -46,11 +51,16 @@ class General extends Component
         Setting::put('general.company', trim($this->company) ?: null);
         Setting::put('billbee.vat_rate', (string) (float) Format::parseDecimal($this->vatRate));
         Setting::put('opportunities.min_profit', (string) (float) Format::parseDecimal($this->minProfit));
+        Setting::put('ai.model', trim($this->aiModel) ?: null);
+        if (trim($this->aiKey) !== '') {
+            Setting::put('ai.api_key', trim($this->aiKey));
+        }
+        $this->aiKey = '';
         $this->notice = 'Gespeichert.';
     }
 
     public function render()
     {
-        return view('livewire.settings.general');
+        return view('livewire.settings.general', ['hasAiKey' => filled(Setting::get('ai.api_key'))]);
     }
 }

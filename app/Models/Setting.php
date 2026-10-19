@@ -15,7 +15,7 @@ class Setting extends Model
     protected $guarded = ['id'];
 
     /** Schlüssel, die verschlüsselt abgelegt werden. */
-    public const SECRET = ['shopify.token', 'shopify.client_secret', 'billbee.api_key', 'billbee.password'];
+    public const SECRET = ['shopify.token', 'shopify.client_secret', 'billbee.api_key', 'billbee.password', 'ai.api_key'];
 
     public static function get(string $key, mixed $default = null): mixed
     {

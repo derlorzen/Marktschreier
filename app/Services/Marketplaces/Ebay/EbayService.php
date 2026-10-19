@@ -229,8 +229,9 @@ class EbayService
         $pictures = $product->images()->limit(12)->pluck('url')->map(fn ($u) => '<PictureURL>'.$x($u).'</PictureURL>')->implode('');
         $multi = $variants->count() > 1;
 
-        $item = '<Title>'.$x(mb_substr($product->title, 0, 80)).'</Title>'
-            .'<Description><![CDATA['.str_replace(']]>', '', (string) $product->description_html).']]></Description>'
+        $content = $product->loadMissing('channelContents')->contentFor($channel);
+        $item = '<Title>'.$x(mb_substr($content->effectiveTitle(), 0, 80)).'</Title>'
+            .'<Description><![CDATA['.str_replace(']]>', '', $content->effectiveDescription()).']]></Description>'
             .'<PrimaryCategory><CategoryID>'.$x($categoryId).'</CategoryID></PrimaryCategory>'
             .'<ConditionID>'.(int) $c->setting('condition', 1000).'</ConditionID>'
             .'<Country>DE</Country><Currency>EUR</Currency><Site>Germany</Site>'
@@ -298,6 +299,31 @@ class EbayService
         }
 
         return ['item_id' => $itemId, 'fees' => $fees, 'warnings' => array_values(array_unique($warnings))];
+    }
+
+    /**
+     * Titel und Beschreibung bestehender eBay-Angebote dieses Artikels ändern.
+     *
+     * @return array{ok: int, failed: int, errors: list<string>}
+     */
+    public function pushContent(Product $product, \App\Models\ChannelContent $content): array
+    {
+        $itemIds = Listing::where('channel_id', $this->channel()->id)->whereIn('variant_id', $product->variants()->pluck('id'))
+            ->whereNotNull('external_id')->where('status', '!=', 'inactive')->distinct()->pluck('external_id');
+        $result = ['ok' => 0, 'failed' => 0, 'errors' => []];
+        foreach ($itemIds as $itemId) {
+            try {
+                $this->client->trading('ReviseFixedPriceItem', '<Item><ItemID>'.EbayClient::x($itemId).'</ItemID>'
+                    .'<Title>'.EbayClient::x(mb_substr($content->effectiveTitle(), 0, 80)).'</Title>'
+                    .'<Description><![CDATA['.str_replace(']]>', '', $content->effectiveDescription()).']]></Description></Item>');
+                $result['ok']++;
+            } catch (MarketplaceException $e) {
+                $result['failed']++;
+                $result['errors'][] = $itemId.': '.$e->getMessage();
+            }
+        }
+
+        return $result;
     }
 
     private function listingFees(SimpleXMLElement $doc): ?float

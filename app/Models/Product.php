@@ -59,6 +59,20 @@ class Product extends Model
         return $this->hasMany(ProductAttribute::class)->orderBy('key');
     }
 
+    public function channelContents(): HasMany
+    {
+        return $this->hasMany(ChannelContent::class);
+    }
+
+    public function contentFor(Channel $channel): ChannelContent
+    {
+        $c = $this->channelContents->firstWhere('channel_id', $channel->id)
+            ?? new ChannelContent(['product_id' => $this->id, 'channel_id' => $channel->id]);
+        $c->setRelation('product', $this)->setRelation('channel', $channel);
+
+        return $c;
+    }
+
     public function changeLogs(): HasMany
     {
         return $this->hasMany(ChangeLog::class)->latest('created_at')->latest('id');
