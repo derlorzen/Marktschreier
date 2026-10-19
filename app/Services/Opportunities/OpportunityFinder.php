@@ -262,7 +262,8 @@ class OpportunityFinder
                             text: 'Verkauft sich ohne Werbung ('.$this->qty($units90).' in 90 Tagen), bringt '.Format::money($best['profit']).' Gewinn je Verkauf auf '.$best['channel']->name
                                 .' und der Bestand reicht.'.' Bis '.Format::percent($breakEven * 100).' Werbekosten vom Umsatz bleibt es ohne Verlust, Ziel: höchstens '.Format::percent($target * 100).'.',
                             product: $product, channel: $best['channel'], monthlyValue: $monthly, weight: $units90,
-                            actionLabel: 'Artikel öffnen', actionUrl: $url,
+                            actionLabel: $best['channel']->key === 'amazon' ? 'Kampagne anlegen' : 'Artikel öffnen',
+                            actionUrl: $best['channel']->key === 'amazon' ? '/werbung?neu='.$product->id : $url,
                             facts: [
                                 'Werbekosten-Grenze' => Format::percent($breakEven * 100),
                                 'Ziel-ACoS' => Format::percent($target * 100),

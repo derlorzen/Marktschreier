@@ -40,6 +40,14 @@ return [
         'seller_central' => env('AMAZON_SELLER_CENTRAL', 'https://sellercentral-europe.amazon.com'),
         'marketplace_id' => env('AMAZON_MARKETPLACE_ID', 'A1PA6795UKMFR9'), // amazon.de
     ],
+    // Amazon Werbung (Advertising API), eigenes LWA-Sicherheitsprofil mit Freigabe für die Ads API
+    'amazon_ads' => [
+        'client_id' => env('AMAZON_ADS_CLIENT_ID', env('AMAZON_LWA_CLIENT_ID')),
+        'client_secret' => env('AMAZON_ADS_CLIENT_SECRET', env('AMAZON_LWA_CLIENT_SECRET')),
+        'endpoint' => env('AMAZON_ADS_ENDPOINT', 'https://advertising-api-eu.amazon.com'),
+        'authorize_url' => 'https://eu.account.amazon.com/ap/oa',
+        'token_url' => 'https://api.amazon.co.uk/auth/o2/token',
+    ],
     'sync' => [
         'billbee_interval_minutes' => (int) env('BILLBEE_SYNC_MINUTES', 15),
         'shopify_interval_minutes' => (int) env('SHOPIFY_SYNC_MINUTES', 60),

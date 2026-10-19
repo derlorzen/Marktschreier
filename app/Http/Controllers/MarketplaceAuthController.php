@@ -68,4 +68,35 @@ class MarketplaceAuthController extends Controller
 
         return $back->with('flash', 'Mit Amazon verbunden'.($name ? ": {$name}" : '').'. Die Angebote werden jetzt eingelesen.');
     }
+
+    public function adsConnect(\App\Services\Ads\AdsService $ads)
+    {
+        abort_unless($ads->client()->appConfigured(), 404);
+        $state = Str::random(40);
+        session(['oauth_state.ads' => $state]);
+
+        return redirect()->away($ads->client()->authorizeUrl($state, route('settings.ads.callback')));
+    }
+
+    public function adsCallback(Request $request, \App\Services\Ads\AdsService $ads)
+    {
+        $back = redirect()->route('settings.ads');
+        if (! $request->filled('code')) {
+            return $back->with('flash_error', 'Amazon hat die Verbindung nicht bestätigt.');
+        }
+        if (! hash_equals((string) session()->pull('oauth_state.ads'), (string) $request->query('state'))) {
+            return $back->with('flash_error', 'Der Rücksprung von Amazon passt nicht zur Anfrage. Bitte erneut verbinden.');
+        }
+        try {
+            $ads->client()->exchangeCode((string) $request->query('code'), route('settings.ads.callback'));
+            $pick = $ads->autoSelectProfile();
+        } catch (\Throwable $e) {
+            return $back->with('flash_error', $e->getMessage());
+        }
+        if ($pick) {
+            \App\Jobs\SyncAds::dispatch();
+        }
+
+        return $back->with('flash', $pick ? 'Verbunden mit '.$pick['name'].'. Kampagnen und Berichte werden jetzt geladen.' : 'Verbunden. Bitte das Werbekonto auswählen.');
+    }
 }

@@ -262,3 +262,7 @@ textarea.input { min-height: 140px; resize: vertical; line-height: 1.5; }
 .alert-card.lvl-warn { border-left-color: var(--warn); }
 @media (max-width: 700px) { .alert-card { flex-direction: column; } }
 .nav-link .count.count-bad { background: var(--bad-tint); color: var(--bad); }
+.daybar.pair { gap: 2px; }
+.daybar.pair .fill { width: 50%; }
+.daybar.pair .fill.cost { background: var(--warn); }
+.legend-swatch { display: inline-block; width: 12px; height: 12px; border-radius: 3px; }

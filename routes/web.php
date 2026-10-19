@@ -41,6 +41,7 @@ Route::middleware('auth')->group(function () {
     })->name('products.close-all');
     Route::livewire('/hinweise', \App\Livewire\Alerts::class)->name('alerts');
     Route::livewire('/chancen', \App\Livewire\Opportunities::class)->name('opportunities');
+    Route::livewire('/werbung', \App\Livewire\Ads::class)->name('ads');
     Route::livewire('/preiswaechter', \App\Livewire\PriceWatches::class)->name('price-watches');
     Route::livewire('/bestand', \App\Livewire\Stock::class)->name('stock');
     Route::livewire('/preise', \App\Livewire\Pricing::class)->name('pricing');
@@ -63,6 +64,9 @@ Route::middleware('auth')->group(function () {
         Route::livewire('/billbee', \App\Livewire\Settings\Billbee::class)->name('settings.billbee');
         Route::livewire('/ebay', \App\Livewire\Settings\Ebay::class)->name('settings.ebay');
         Route::livewire('/amazon', \App\Livewire\Settings\Amazon::class)->name('settings.amazon');
+        Route::livewire('/amazon-werbung', \App\Livewire\Settings\AmazonAds::class)->name('settings.ads');
+        Route::get('/amazon-werbung/verbinden', [\App\Http\Controllers\MarketplaceAuthController::class, 'adsConnect'])->name('settings.ads.connect');
+        Route::get('/amazon-werbung/rueckkehr', [\App\Http\Controllers\MarketplaceAuthController::class, 'adsCallback'])->name('settings.ads.callback');
         Route::get('/ebay/verbinden', [\App\Http\Controllers\MarketplaceAuthController::class, 'ebayConnect'])->name('settings.ebay.connect');
         Route::get('/ebay/rueckkehr', [\App\Http\Controllers\MarketplaceAuthController::class, 'ebayCallback'])->name('settings.ebay.callback');
         Route::get('/amazon/verbinden', [\App\Http\Controllers\MarketplaceAuthController::class, 'amazonConnect'])->name('settings.amazon.connect');

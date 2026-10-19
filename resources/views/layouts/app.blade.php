@@ -16,9 +16,12 @@
             ['route' => 'alerts', 'match' => 'alerts', 'label' => 'Hinweise', 'icon' => 'M6 8a6 6 0 1 1 12 0c0 7 3 9 3 9H3s3-2 3-9M10.3 21a1.9 1.9 0 0 0 3.4 0'],
             ['route' => 'opportunities', 'match' => 'opportunities', 'label' => 'Chancen', 'icon' => 'M12 3l2.6 5.6 6.1.7-4.5 4.2 1.2 6L12 16.6 6.6 19.5l1.2-6L3.3 9.3l6.1-.7L12 3z'],
         ],
+        'Verkaufen' => [
+            ['route' => 'ads', 'match' => 'ads', 'label' => 'Werbung', 'icon' => 'M3 11l15-6v14L3 13v-2zM7 13v5a2 2 0 0 0 4 0v-3'],
+            ['route' => 'price-watches', 'match' => 'price-watches', 'label' => 'Preiswächter', 'icon' => 'M12 2l7 4v6c0 5-3.5 8.5-7 10-3.5-1.5-7-5-7-10V6l7-4zM9 12l2 2 4-4'],
+        ],
         'Sortiment' => [
             ['route' => 'products.index', 'match' => 'products.*', 'label' => 'Artikel', 'icon' => 'M4 7h16M4 12h16M4 17h10'],
-            ['route' => 'price-watches', 'match' => 'price-watches', 'label' => 'Preiswächter', 'icon' => 'M12 2l7 4v6c0 5-3.5 8.5-7 10-3.5-1.5-7-5-7-10V6l7-4zM9 12l2 2 4-4'],
             ['route' => 'stock', 'match' => 'stock', 'label' => 'Bestand', 'icon' => 'M3 7l9-4 9 4-9 4-9-4zM3 7v10l9 4 9-4V7M12 11v10'],
             ['route' => 'pricing', 'match' => 'pricing', 'label' => 'Preisregeln', 'icon' => 'M7 3h10a1 1 0 0 1 1 1v16a1 1 0 0 1-1 1H7a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1zM9 7h6M9 11h1M12 11h1M15 11h0M9 15h1M12 15h1M9 18h1M12 18h1M15 15v3'],
         ],

@@ -113,3 +113,7 @@ Schedule::call(function () {
 Schedule::job(new \App\Jobs\RunPriceWatches)->everyThirtyMinutes()
     ->when(fn () => rescue(fn () => \App\Models\MarketplaceConnection::for('amazon')->isConnected() && \App\Models\PriceWatch::where('active', true)->exists(), false, false))
     ->name('price-watches')->withoutOverlapping();
+
+Schedule::job(new \App\Jobs\SyncAds)->dailyAt('6:10')->timezone('Europe/Berlin')
+    ->when(fn () => rescue(fn () => \App\Models\MarketplaceConnection::for('amazon_ads')->isConnected() && \App\Models\MarketplaceConnection::for('amazon_ads')->setting('profile_id'), false, false))
+    ->name('ads-sync')->withoutOverlapping();
