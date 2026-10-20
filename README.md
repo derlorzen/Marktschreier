@@ -64,7 +64,7 @@ Jeder Kunde bekommt eine eigene Instanz mit eigener Datenbank. `docker-compose.y
 - `scheduler` (Billbee EK und Bestand alle 15 Minuten, Verkäufe alle 30 Minuten, Shopify-Änderungen stündlich)
 - `postgres`, `redis`
 
-In Coolify: neue Ressource „Docker Compose“ aus dem Repo, Umgebungsvariablen setzen, Domain auf `app:8080`.
+In Coolify: neue Ressource „Docker Compose“ aus dem Repo, Umgebungsvariablen setzen, beim Dienst `app` die Domain mit `:8080` eintragen (z. B. `https://marktschreier.example.de:8080`). Lokal mit Port: `docker compose -f docker-compose.yml -f docker-compose.local.yml up`.
 
 Pflicht-Variablen:
 

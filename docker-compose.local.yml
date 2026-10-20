@@ -1,0 +1,5 @@
+# Nur für den lokalen Betrieb: App auf http://localhost:8080 erreichbar machen.
+services:
+  app:
+    ports:
+      - "${APP_PORT:-8080}:8080"

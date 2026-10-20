@@ -1,5 +1,6 @@
 # Eine Marktschreier-Instanz je Kunde. Für Coolify als "Docker Compose"-Ressource anlegen,
-# Umgebungsvariablen dort setzen (siehe .env.example) und die Domain auf den Dienst "app" (Port 8080) legen.
+# Umgebungsvariablen dort setzen (siehe .env.example) und beim Dienst "app" die Domain mit :8080 eintragen,
+# z. B. https://marktschreier.example.de:8080 (Coolify leitet dann intern auf Port 8080).
 x-app: &app
   build: .
   image: ${IMAGE:-marktschreier:latest}
@@ -52,8 +53,10 @@ x-app: &app
 services:
   app:
     <<: *app
-    ports:
-      - "${APP_PORT:-8080}:8080"
+    # Kein fester Host-Port: In Coolify routet Traefik über die Domain auf Port 8080.
+    # Lokal: docker compose -f docker-compose.yml -f docker-compose.local.yml up
+    expose:
+      - "8080"
     healthcheck:
       test: ["CMD", "curl", "-fsS", "http://localhost:8080/up"]
       interval: 30s
