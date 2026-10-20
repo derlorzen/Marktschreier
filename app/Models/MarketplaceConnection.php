@@ -9,6 +9,7 @@ class MarketplaceConnection extends Model
 {
     public const EBAY = 'ebay';
     public const AMAZON = 'amazon';
+    public const TIKTOK = 'tiktok';
 
     protected $guarded = ['id'];
 

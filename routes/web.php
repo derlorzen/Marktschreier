@@ -82,6 +82,9 @@ Route::middleware('auth')->group(function () {
         Route::livewire('/amazon-werbung', \App\Livewire\Settings\AmazonAds::class)->name('settings.ads');
         Route::get('/amazon-werbung/verbinden', [\App\Http\Controllers\MarketplaceAuthController::class, 'adsConnect'])->name('settings.ads.connect');
         Route::get('/amazon-werbung/rueckkehr', [\App\Http\Controllers\MarketplaceAuthController::class, 'adsCallback'])->name('settings.ads.callback');
+        Route::livewire('/tiktok', \App\Livewire\Settings\TikTok::class)->name('settings.tiktok');
+        Route::get('/tiktok/verbinden', [\App\Http\Controllers\MarketplaceAuthController::class, 'tiktokConnect'])->name('settings.tiktok.connect');
+        Route::get('/tiktok/rueckkehr', [\App\Http\Controllers\MarketplaceAuthController::class, 'tiktokCallback'])->name('settings.tiktok.callback');
         Route::get('/ebay/verbinden', [\App\Http\Controllers\MarketplaceAuthController::class, 'ebayConnect'])->name('settings.ebay.connect');
         Route::get('/ebay/rueckkehr', [\App\Http\Controllers\MarketplaceAuthController::class, 'ebayCallback'])->name('settings.ebay.callback');
         Route::get('/amazon/verbinden', [\App\Http\Controllers\MarketplaceAuthController::class, 'amazonConnect'])->name('settings.amazon.connect');

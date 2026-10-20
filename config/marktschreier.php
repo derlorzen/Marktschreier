@@ -53,6 +53,15 @@ return [
         'api_key' => env('ANTHROPIC_API_KEY'),
         'model' => env('ANTHROPIC_MODEL', 'claude-sonnet-5-5'),
     ],
+    'tiktok' => [
+        'app_key' => env('TIKTOK_APP_KEY'),
+        'app_secret' => env('TIKTOK_APP_SECRET'),
+        // Service-ID aus dem TikTok Shop Partner Center; ohne sie wird die ältere Autorisierungs-Seite genutzt
+        'service_id' => env('TIKTOK_SERVICE_ID'),
+        'api' => 'https://open-api.tiktokglobalshop.com',
+        'auth' => 'https://auth.tiktok-shops.com',
+        'version' => '202309',
+    ],
     'sync' => [
         'billbee_interval_minutes' => (int) env('BILLBEE_SYNC_MINUTES', 15),
         'shopify_interval_minutes' => (int) env('SHOPIFY_SYNC_MINUTES', 60),

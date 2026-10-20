@@ -12,17 +12,20 @@ use Illuminate\Support\Collection;
 /** Gemeinsamer Einstieg für alle Marktplätze: Listings lesen, offene Preise übertragen. */
 class MarketplaceManager
 {
-    public const PROVIDERS = [MarketplaceConnection::EBAY, MarketplaceConnection::AMAZON];
+    public const PROVIDERS = [MarketplaceConnection::EBAY, MarketplaceConnection::AMAZON, MarketplaceConnection::TIKTOK];
 
-    public function __construct(private EbayService $ebay, private AmazonService $amazon)
+    public const NAMES = ['ebay' => 'eBay', 'amazon' => 'Amazon', 'tiktok' => 'TikTok Shop'];
+
+    public function __construct(private EbayService $ebay, private AmazonService $amazon, private \App\Services\Marketplaces\TikTok\TikTokService $tiktok)
     {
     }
 
-    public function service(string $provider): EbayService|AmazonService
+    public function service(string $provider): EbayService|AmazonService|\App\Services\Marketplaces\TikTok\TikTokService
     {
         return match ($provider) {
             MarketplaceConnection::EBAY => $this->ebay,
             MarketplaceConnection::AMAZON => $this->amazon,
+            MarketplaceConnection::TIKTOK => $this->tiktok,
         };
     }
 

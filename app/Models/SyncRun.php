@@ -40,8 +40,8 @@ class SyncRun extends Model
 
     public function typeLabel(): string
     {
-        if (preg_match('/^(listings|prices)_(ebay|amazon)$/', $this->type, $m)) {
-            return ($m[1] === 'listings' ? 'Angebote lesen: ' : 'Preise übertragen: ').($m[2] === 'ebay' ? 'eBay' : 'Amazon');
+        if (preg_match('/^(listings|prices)_(ebay|amazon|tiktok)$/', $this->type, $m)) {
+            return ($m[1] === 'listings' ? 'Angebote lesen: ' : 'Preise übertragen: ').\App\Services\Marketplaces\MarketplaceManager::NAMES[$m[2]];
         }
 
         return [self::TYPE_SHOPIFY_IMPORT => 'Import aus Shopify', self::TYPE_SHOPIFY_PUSH => 'Übertragung zu Shopify', self::TYPE_BILLBEE => 'Abgleich mit Billbee', self::TYPE_BILLBEE_ORDERS => 'Verkäufe aus Billbee', 'buybox' => 'Preiswächter', 'ads_sync' => 'Werbung lesen', 'tiktok_listings' => 'TikTok Shop lesen'][$this->type] ?? $this->type;

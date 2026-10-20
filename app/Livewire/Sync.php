@@ -103,7 +103,7 @@ class Sync extends Component
             'lastOrders' => SyncRun::lastSuccessful(SyncRun::TYPE_BILLBEE_ORDERS),
             'orderCount' => \App\Models\Order::count(),
             'marketplaces' => collect(\App\Services\Marketplaces\MarketplaceManager::PROVIDERS)->mapWithKeys(fn ($p) => [$p => [
-                'name' => $p === 'ebay' ? 'eBay' : 'Amazon',
+                'name' => \App\Services\Marketplaces\MarketplaceManager::NAMES[$p],
                 'connection' => \App\Models\MarketplaceConnection::for($p),
                 'pending' => \App\Models\MarketplaceConnection::for($p)->isConnected() ? app(\App\Services\Marketplaces\MarketplaceManager::class)->pendingPrices($p)->count() : 0,
             ]]),

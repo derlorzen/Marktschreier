@@ -202,6 +202,9 @@ class Marketplaces extends Component
                 continue;
             }
             $connection = MarketplaceConnection::for($provider);
+            if (! $channel->active && ! $connection->isConnected()) {
+                continue;
+            }
             $rows = $variants->map(function (Variant $v) use ($channel) {
                 $listing = $v->listings->firstWhere('channel_id', $channel->id);
                 if ($listing) {

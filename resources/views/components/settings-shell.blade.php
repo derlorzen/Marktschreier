@@ -14,6 +14,7 @@
             ['settings.billbee', 'Billbee', false],
             ['settings.ebay', 'eBay', false],
             ['settings.amazon', 'Amazon', false],
+            ['settings.tiktok', 'TikTok Shop', false],
             ['settings.ads', 'Amazon Werbung', false],
         ],
     ];

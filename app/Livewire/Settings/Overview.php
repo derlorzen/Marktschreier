@@ -41,6 +41,13 @@ class Overview extends Component
             ['route' => 'settings.amazon', 'title' => 'Amazon',
                 'state' => $amazon->status === 'error' ? 'bad' : ($amazon->isConnected() ? 'ok' : 'off'),
                 'text' => $amazon->isConnected() ? ($amazon->account_name ?? 'verbunden') : ($amazon->status === 'error' ? 'Verbindung gestört' : 'Nicht verbunden')],
+            (function () {
+                $t = MarketplaceConnection::for(MarketplaceConnection::TIKTOK);
+
+                return ['route' => 'settings.tiktok', 'title' => 'TikTok Shop',
+                    'state' => $t->status === 'error' ? 'bad' : ($t->isConnected() ? 'ok' : 'off'),
+                    'text' => $t->isConnected() ? ($t->account_name ?? 'verbunden') : ($t->status === 'error' ? 'Verbindung gestört' : 'Nicht verbunden')];
+            })(),
             ['route' => 'settings.users', 'title' => 'Benutzer', 'state' => 'ok',
                 'text' => User::where('active', true)->count().' aktiv, davon '.User::where('active', true)->where('role', User::ADMIN)->count().' Administratoren'],
             ['route' => 'settings.schedule', 'title' => 'Abgleich und Zeitplan', 'state' => 'ok',

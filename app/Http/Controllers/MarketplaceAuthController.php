@@ -99,4 +99,32 @@ class MarketplaceAuthController extends Controller
 
         return $back->with('flash', $pick ? 'Verbunden mit '.$pick['name'].'. Kampagnen und Berichte werden jetzt geladen.' : 'Verbunden. Bitte das Werbekonto auswählen.');
     }
+
+    public function tiktokConnect(\App\Services\Marketplaces\TikTok\TikTokService $tiktok)
+    {
+        abort_unless($tiktok->client()->appConfigured(), 404);
+        $state = Str::random(40);
+        session(['oauth_state.tiktok' => $state]);
+
+        return redirect()->away($tiktok->client()->authorizeUrl($state));
+    }
+
+    public function tiktokCallback(Request $request, \App\Services\Marketplaces\TikTok\TikTokService $tiktok)
+    {
+        $back = redirect()->route('settings.tiktok');
+        if (! $request->filled('code')) {
+            return $back->with('flash_error', 'TikTok hat die Verbindung nicht bestätigt.');
+        }
+        if (! hash_equals((string) session()->pull('oauth_state.tiktok'), (string) $request->query('state'))) {
+            return $back->with('flash_error', 'Der Rücksprung von TikTok passt nicht zur Anfrage. Bitte erneut verbinden.');
+        }
+        try {
+            $tiktok->client()->exchangeCode((string) $request->query('code'));
+        } catch (\Throwable $e) {
+            return $back->with('flash_error', $e->getMessage());
+        }
+        SyncMarketplace::dispatch('tiktok', 'listings');
+
+        return $back->with('flash', 'Mit TikTok Shop verbunden. Die Angebote werden jetzt eingelesen.');
+    }
 }

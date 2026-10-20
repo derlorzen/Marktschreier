@@ -31,19 +31,19 @@
             @if ($p['connected'])
                 <div class="table-wrap">
                 <table class="list">
-                    <thead><tr><th>Variante</th><th>Status</th><th>{{ $provider === 'amazon' ? 'ASIN' : 'Artikelnummer' }}</th><th class="num">Preis dort</th><th class="num">Preis hier</th><th>Hinweis</th></tr></thead>
+                    <thead><tr><th>Variante</th><th>Status</th><th>{{ ['amazon' => 'ASIN', 'ebay' => 'Artikelnummer', 'tiktok' => 'Produkt-ID'][$provider] }}</th><th class="num">Preis dort</th><th class="num">Preis hier</th><th>Hinweis</th></tr></thead>
                     <tbody>
                     @foreach ($p['rows'] as $row)
                         @php
                             $l = $row['listing'];
                             $v = $row['variant'];
                             [$label, $class] = $l ? $l->statusLabel() : ['Nicht gefunden', ''];
-                            $url = $l?->external_id ? ($provider === 'amazon' ? 'https://www.amazon.de/dp/'.$l->external_id : 'https://www.ebay.de/itm/'.$l->external_id) : null;
+                            $url = $l?->external_id ? match ($provider) { 'amazon' => 'https://www.amazon.de/dp/'.$l->external_id, 'ebay' => 'https://www.ebay.de/itm/'.$l->external_id, default => null } : null;
                         @endphp
                         <tr wire:key="{{ $provider }}-{{ $v->id }}">
                             <td class="nowrap"><strong>{{ $v->label() }}</strong><div class="small muted mono">{{ $v->sku }}</div></td>
                             <td><span class="badge {{ $class }}">{{ $label }}</span></td>
-                            <td class="mono small">@if ($url)<a href="{{ $url }}" target="_blank" rel="noopener">{{ $l->external_id }}</a>@else – @endif</td>
+                            <td class="mono small">@if ($url)<a href="{{ $url }}" target="_blank" rel="noopener">{{ $l->external_id }}</a>@elseif ($l?->external_id){{ $l->external_id }}@else – @endif</td>
                             <td class="num">{{ Format::money($l?->remote_price) }}</td>
                             <td class="num">
                                 {{ Format::money($row['price']) }}
