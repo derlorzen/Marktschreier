@@ -91,6 +91,28 @@ class CatalogWriterTest extends TestCase
         $this->assertSame(['klein', 'groß'], $p->options[1]['values']);
     }
 
+    public function test_restoring_a_variant_keeps_its_entered_values(): void
+    {
+        $c = Livewire::test(Create::class)
+            ->set('title', 'Shirt')
+            ->set('options.0.name', 'Farbe')->set('options.0.values', 'rot, grün')
+            ->set('defaultPrice', '9,90')
+            ->set('rows.rot.sku', 'SH-R')->set('rows.rot.barcode', '4006381333931')->set('rows.rot.price', '12,50');
+
+        $c->call('removeRow', 'rot');
+        $this->assertArrayNotHasKey('rot', $c->get('rows'));
+
+        $c->call('restoreRow', 'rot');
+        $this->assertSame(['sku' => 'SH-R', 'barcode' => '4006381333931', 'price' => '12,50'], $c->get('rows')['rot']);
+        $this->assertSame([], $c->get('removedRows'));
+
+        // Verschwindet die Kombination ganz, werden auch die aufgehobenen Eingaben verworfen
+        $c->call('removeRow', 'rot')->set('options.0.values', 'grün, blau');
+        $this->assertSame([], $c->get('removedRows'));
+        $c->set('options.0.values', 'rot, grün');
+        $this->assertSame('', $c->get('rows')['rot']['sku']);
+    }
+
     public function test_option_values_without_variant_are_dropped_and_last_variant_stays(): void
     {
         $c = Livewire::test(Create::class)

@@ -38,6 +38,9 @@ class Create extends Component
     /** @var list<string> Kombinationen, die es nicht gibt (z. B. „rot / klein“) */
     public array $excluded = [];
 
+    /** @var array<string, array{sku: string, barcode: string, price: string}> Eingaben entfernter Zeilen, für das Wiederherstellen */
+    public array $removedRows = [];
+
     public function removeRow(string $key): void
     {
         if (! array_key_exists($key, $this->rows)) {
@@ -119,14 +122,22 @@ class Create extends Component
         $new = [];
         foreach ($keys as $key) {
             if (in_array($key, $this->excluded, true)) {
+                // Eingaben aufheben, damit sie beim Wiederherstellen zurückkommen
+                if (isset($this->rows[$key])) {
+                    $this->removedRows[$key] = $this->rows[$key];
+                }
+
                 continue;
             }
-            $new[$key] = $this->rows[$key] ?? ['sku' => '', 'barcode' => '', 'price' => $this->defaultPrice];
+            $new[$key] = $this->rows[$key] ?? $this->removedRows[$key] ?? ['sku' => '', 'barcode' => '', 'price' => $this->defaultPrice];
+            unset($this->removedRows[$key]);
             if ($new[$key]['price'] === '' && $this->defaultPrice !== '') {
                 $new[$key]['price'] = $this->defaultPrice;
             }
         }
         $this->rows = $new;
+        // Nur Eingaben noch ausgeschlossener Kombinationen behalten
+        $this->removedRows = array_intersect_key($this->removedRows, array_flip($this->excluded));
     }
 
     public function mount(): void
