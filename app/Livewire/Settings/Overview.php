@@ -48,6 +48,13 @@ class Overview extends Component
                     'state' => $t->status === 'error' ? 'bad' : ($t->isConnected() ? 'ok' : 'off'),
                     'text' => $t->isConnected() ? ($t->account_name ?? 'verbunden') : ($t->status === 'error' ? 'Verbindung gestört' : 'Nicht verbunden')];
             })(),
+            (function () use ($fmt, $last) {
+                $ok = (new \App\Services\Plenty\PlentyClient)->isConfigured();
+                $run = $last(\App\Services\Plenty\PlentyImporter::TYPE_ITEMS);
+
+                return ['route' => 'settings.plenty', 'title' => 'PlentyONE', 'state' => $ok ? 'ok' : 'off',
+                    'text' => $ok ? 'Import '.($fmt($run?->finished_at) ?? 'noch keiner') : 'Nicht angebunden (nur für Umzüge)'];
+            })(),
             ['route' => 'settings.users', 'title' => 'Benutzer', 'state' => 'ok',
                 'text' => User::where('active', true)->count().' aktiv, davon '.User::where('active', true)->where('role', User::ADMIN)->count().' Administratoren'],
             ['route' => 'settings.schedule', 'title' => 'Abgleich und Zeitplan', 'state' => 'ok',

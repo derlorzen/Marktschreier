@@ -12,6 +12,7 @@
         'Verbindungen' => [
             ['settings.shopify', 'Shopify', false],
             ['settings.billbee', 'Billbee', false],
+            ['settings.plenty', 'PlentyONE', false],
             ['settings.ebay', 'eBay', false],
             ['settings.amazon', 'Amazon', false],
             ['settings.tiktok', 'TikTok Shop', false],

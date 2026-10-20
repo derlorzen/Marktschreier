@@ -74,6 +74,22 @@ Schedule::job(new ImportShopifyProducts)
     ->when(fn () => $plan::enabled('shopify') && app(ShopifyClient::class)->isConfigured() && \App\Models\SyncRun::lastSuccessful(\App\Models\SyncRun::TYPE_SHOPIFY_IMPORT))
     ->name('shopify-import')->withoutOverlapping();
 
+Schedule::job(new \App\Jobs\SyncPlenty('items'))
+    ->cron($every($plan::interval('shopify')))
+    ->when(fn () => $plan::enabled('shopify') && (new \App\Services\Plenty\PlentyClient)->isConfigured() && \App\Models\SyncRun::lastSuccessful(\App\Services\Plenty\PlentyImporter::TYPE_ITEMS))
+    ->name('plenty-items')->withoutOverlapping();
+
+Schedule::job(new \App\Jobs\SyncPlenty('orders'))
+    ->cron($every($plan::interval('orders')))
+    ->when(fn () => $plan::enabled('orders') && (new \App\Services\Plenty\PlentyClient)->isConfigured() && \App\Models\SyncRun::lastSuccessful(\App\Services\Plenty\PlentyImporter::TYPE_ORDERS))
+    ->name('plenty-orders')->withoutOverlapping();
+
+Artisan::command('marktschreier:plenty {what=items : items oder orders} {--full}', function (string $what) {
+    $i = app(\App\Services\Plenty\PlentyImporter::class);
+    $stats = $what === 'orders' ? $i->importOrders() : $i->importItems((bool) $this->option('full'));
+    $this->table(['Wert', 'Anzahl'], collect($stats)->map(fn ($v, $k) => [$k, $v])->values());
+})->purpose('PlentyONE lesen: Artikel oder Aufträge');
+
 foreach (\App\Services\Marketplaces\MarketplaceManager::PROVIDERS as $provider) {
     Schedule::job(new \App\Jobs\SyncMarketplace($provider, 'listings'))
         ->cron(str_replace('0 ', '20 ', $every(max(60, $plan::interval('listings')))))

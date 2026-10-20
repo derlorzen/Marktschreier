@@ -21,9 +21,11 @@
         <span class="spacer"></span>
         <span class="badge {{ $syncClass }}">{{ $syncLabel }}</span>
         <button class="btn" wire:click="save" wire:loading.attr="disabled">Speichern <span class="spin" wire:loading wire:target="save"></span></button>
+        @if ($product->shopify_id || $shopifyConfigured)
         <button class="btn btn-primary" wire:click="push" wire:loading.attr="disabled" title="Speichert und überträgt alle offenen Änderungen zu Shopify">
             {{ $product->shopify_id ? 'Speichern und zu Shopify' : 'In Shopify anlegen' }} <span class="spin" wire:loading wire:target="push"></span>
         </button>
+        @endif
     </div>
 
     {{-- Kennzahlen direkt sichtbar, ohne Aufklappen --}}
@@ -50,7 +52,10 @@
     @endif
 
     @if (session('flash'))<div class="notice notice-ok" style="margin-bottom:12px">{{ session('flash') }}</div>@endif
-    @if (! $product->shopify_id)
+    @if ($product->plenty_id && ! $product->shopify_id)
+        <div class="notice" style="margin-bottom:12px"><strong>Aus PlentyONE (Artikel {{ $product->plenty_id }}).</strong> PlentyONE bleibt bis zum Umzug führend. Hier geänderte Felder bleiben in Marktschreier und werden beim nächsten Import nicht überschrieben.
+            @if ($shopifyConfigured) Mit „In Shopify anlegen“ kann der Artikel in den neuen Shop übernommen werden. @endif</div>
+    @elseif (! $product->shopify_id)
         <div class="notice" style="margin-bottom:12px"><strong>Nur in Marktschreier.</strong> Mit „In Shopify anlegen“ entsteht der Artikel als Entwurf in Shopify, danach können Bilder hochgeladen und Marktplätze bedient werden.
             @if ($product->push_error)<div class="error">{{ $product->push_error }}</div>@endif</div>
     @elseif ($pendingCount > 0)

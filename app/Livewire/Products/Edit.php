@@ -371,6 +371,7 @@ class Edit extends Component
             'hasStock' => $p->variants->whereNotNull('stock')->isNotEmpty(),
             'costMin' => $costs->min('cost_net'),
             'marginAvg' => $margins->isNotEmpty() ? $margins->avg() : null,
+            'shopifyConfigured' => app(\App\Services\Shopify\ShopifyClient::class)->isConfigured(),
             'shopifyAdminUrl' => $p->shopify_id && Setting::get('shopify.shop')
                 ? 'https://'.preg_replace('#^https?://#', '', rtrim(Setting::get('shopify.shop'), '/')).'/admin/products/'.basename($p->shopify_id) : null,
         ])->title($p->title);
