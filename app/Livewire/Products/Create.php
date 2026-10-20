@@ -110,6 +110,17 @@ class Create extends Component
         return array_slice($combos, 0, 100);
     }
 
+    /** @return array<string, list<string>> Anzeigename der Variante => Optionswerte */
+    private function comboParts(): array
+    {
+        $parts = [];
+        foreach ($this->combinations() as $combo) {
+            $parts[implode(' / ', $combo) ?: 'Standard'] = $combo;
+        }
+
+        return $parts;
+    }
+
     private function syncRows(): void
     {
         $keys = array_map(fn ($combo) => implode(' / ', $combo) ?: 'Standard', $this->combinations());
@@ -170,7 +181,9 @@ class Create extends Component
 
         $product = DB::transaction(function () {
             // Nur Werte übernehmen, die in einer verbliebenen Variante vorkommen (Reihenfolge wie eingegeben)
-            $used = collect(array_keys($this->rows))->reject(fn ($k) => $k === 'Standard')->map(fn ($k) => explode(' / ', $k));
+            // Teile aus den Kombinationen nehmen, nicht aus dem Namen: Werte dürfen selbst „ / “ enthalten
+            $comboParts = $this->comboParts();
+            $used = collect(array_keys($this->rows))->map(fn ($k) => $comboParts[$k] ?? []);
             // Gleicher Filter wie in combinations(), damit die Positionen zu den Varianten passen
             $opts = collect($this->options)->filter(fn ($o) => trim($o['name']) !== '' && array_filter(array_map('trim', explode(',', $o['values']))))->values()
                 ->map(fn ($o, $i) => ['name' => trim($o['name']), 'position' => $i + 1, 'values' => array_values(array_filter(
@@ -185,7 +198,7 @@ class Create extends Component
             ]);
             $pos = 1;
             foreach ($this->rows as $key => $row) {
-                $parts = $key === 'Standard' ? [] : explode(' / ', $key);
+                $parts = $comboParts[$key] ?? [];
                 Variant::create([
                     'product_id' => $product->id, 'title' => $key === 'Standard' ? 'Default Title' : $key, 'position' => $pos++,
                     'sku' => trim($row['sku']), 'barcode' => trim($row['barcode']) ?: null, 'price' => Format::parseDecimal($row['price']),

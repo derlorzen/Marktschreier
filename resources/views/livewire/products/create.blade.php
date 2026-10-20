@@ -23,14 +23,14 @@
             <div class="card-pad stack">
                 @foreach ($options as $i => $o)
                     <div class="row" wire:key="opt{{ $i }}">
-                        <input class="input" style="flex:1 1 160px" wire:model.live.debounce.400ms="options.{{ $i }}.name" placeholder="Option, z. B. Farbe" aria-label="Name der Option {{ $i + 1 }}">
-                        <input class="input" style="flex:3 1 300px" wire:model.live.debounce.400ms="options.{{ $i }}.values" placeholder="Werte, z. B. Schwarz, Rot, Blau" aria-label="Werte der Option {{ $i + 1 }}">
+                        <input class="input" style="flex:1 1 160px" wire:model.live.debounce.400ms="options.{{ $i }}.name" autocomplete="off" placeholder="Option, z. B. Farbe" aria-label="Name der Option {{ $i + 1 }}">
+                        <input class="input" style="flex:3 1 300px" wire:model.live.debounce.400ms="options.{{ $i }}.values" autocomplete="off" placeholder="Werte, z. B. Schwarz, Rot, Blau" aria-label="Werte der Option {{ $i + 1 }}">
                         <button type="button" class="btn btn-sm" wire:click="removeOption({{ $i }})">Entfernen</button>
                     </div>
                 @endforeach
                 <div class="row">
                     @if (count($options) < 3)<button type="button" class="btn btn-sm" wire:click="addOption">Option hinzufügen</button>@endif
-                    <label class="field" style="flex-direction:row;align-items:center;gap:8px">Preis für alle <input class="input input-sm num" style="width:110px" wire:model.live.debounce.400ms="defaultPrice" inputmode="decimal" placeholder="9,90"></label>
+                    <label class="field" style="flex-direction:row;align-items:center;gap:8px">Preis für alle <input class="input input-sm num" style="width:110px" wire:model.live.debounce.400ms="defaultPrice" inputmode="decimal" autocomplete="off" placeholder="9,90"></label>
                 </div>
                 <div class="table-wrap">
                 <table class="list variant-table">
@@ -39,9 +39,9 @@
                     @foreach ($rows as $key => $row)
                         <tr wire:key="row-{{ md5($key) }}">
                             <td class="nowrap v-name"><strong>{{ $key }}</strong></td>
-                            <td class="v-sku" data-label="SKU"><input class="input input-sm mono" wire:model="rows.{{ $key }}.sku" aria-label="SKU {{ $key }}">@error("rows.$key.sku") <div class="error">{{ $message }}</div> @enderror</td>
-                            <td class="v-gtin" data-label="GTIN/EAN"><input class="input input-sm mono" wire:model="rows.{{ $key }}.barcode" inputmode="numeric" aria-label="GTIN {{ $key }}">@error("rows.$key.barcode") <div class="error">{{ $message }}</div> @enderror</td>
-                            <td class="v-price" data-label="Preis"><input class="input input-sm num" wire:model="rows.{{ $key }}.price" inputmode="decimal" aria-label="Preis {{ $key }}">@error("rows.$key.price") <div class="error">{{ $message }}</div> @enderror</td>
+                            <td class="v-sku" data-label="SKU"><input class="input input-sm mono" wire:model="rows.{{ $key }}.sku" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" aria-label="SKU {{ $key }}">@error("rows.$key.sku") <div class="error">{{ $message }}</div> @enderror</td>
+                            <td class="v-gtin" data-label="GTIN/EAN"><input class="input input-sm mono" wire:model="rows.{{ $key }}.barcode" inputmode="numeric" autocomplete="off" spellcheck="false" aria-label="GTIN {{ $key }}">@error("rows.$key.barcode") <div class="error">{{ $message }}</div> @enderror</td>
+                            <td class="v-price" data-label="Preis"><input class="input input-sm num" wire:model="rows.{{ $key }}.price" inputmode="decimal" autocomplete="off" aria-label="Preis {{ $key }}">@error("rows.$key.price") <div class="error">{{ $message }}</div> @enderror</td>
                             <td class="row-remove">
                                 @if (count($rows) > 1)
                                     <button type="button" class="btn btn-sm btn-icon" wire:click="removeRow(@js($key))" title="{{ $key }} gibt es nicht" aria-label="Variante {{ $key }} entfernen">
