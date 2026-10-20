@@ -144,6 +144,22 @@ textarea.input { min-height: 140px; resize: vertical; line-height: 1.5; }
 .btn-icon { padding: 0; width: 32px; justify-content: center; color: var(--muted); }
 .btn-icon:hover { color: var(--bad); }
 td.row-remove { width: 1%; text-align: right; }
+.variant-table td.v-price { width: 120px; }
+/* Variantentabelle auf dem Handy: je Variante eine Karte mit beschrifteten Feldern */
+@media (max-width: 600px) {
+  .variant-table thead { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
+  .variant-table, .variant-table tbody { display: block; }
+  table.list.variant-table tr { display: grid; grid-template-columns: 1fr 1fr; gap: 8px 10px; align-items: end; padding: 12px 0; border-bottom: 1px solid var(--line); }
+  table.list.variant-table td { display: block; padding: 0; border: 0; width: auto; }
+  table.list.variant-table td.v-name { grid-column: 1; grid-row: 1; align-self: center; }
+  table.list.variant-table td.row-remove { grid-column: 2; grid-row: 1; justify-self: end; }
+  table.list.variant-table td.v-sku { grid-column: 1; }
+  table.list.variant-table td.v-gtin { grid-column: 2; }
+  table.list.variant-table td.v-price { grid-column: 1; }
+  .variant-table td[data-label]::before { content: attr(data-label); display: block; font-size: 12px; font-weight: 600; color: var(--muted); margin-bottom: 4px; }
+  table.list.variant-table tbody tr:hover { background: none; }
+}
+
 .btn[disabled] { opacity: .55; cursor: not-allowed; }
 .btn .spin { display: none; }
 .btn[data-loading] .spin, .btn.is-loading .spin { display: inline-block; }
