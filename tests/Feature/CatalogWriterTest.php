@@ -64,6 +64,55 @@ class CatalogWriterTest extends TestCase
             && $r['variables']['input']['variants'][0]['inventoryItem']['sku'] === 'DB-NEU-S');
     }
 
+    public function test_create_article_without_some_combinations(): void
+    {
+        $c = Livewire::test(Create::class)
+            ->set('title', 'Shirt')
+            ->set('options.0.name', 'Farbe')->set('options.0.values', 'rot, grün')
+            ->call('addOption')
+            ->set('options.1.name', 'Größe')->set('options.1.values', 'klein, groß')
+            ->set('defaultPrice', '9,90');
+        $this->assertSame(['rot / klein', 'rot / groß', 'grün / klein', 'grün / groß'], array_keys($c->get('rows')));
+
+        $c->call('removeRow', 'rot / klein')->call('removeRow', 'rot / groß');
+        $this->assertSame(['grün / klein', 'grün / groß'], array_keys($c->get('rows')));
+        $this->assertSame(['rot / klein', 'rot / groß'], $c->get('excluded'));
+
+        $c->call('restoreRow', 'rot / groß');
+        $this->assertSame(['rot / groß', 'grün / klein', 'grün / groß'], array_keys($c->get('rows')));
+
+        $c->set('rows.rot / groß.sku', 'SH-RG')->set('rows.grün / klein.sku', 'SH-GK')->set('rows.grün / groß.sku', 'SH-GG')
+            ->call('save')->assertHasNoErrors()->assertRedirect();
+
+        $p = Product::with('variants')->sole();
+        $this->assertSame(['rot / groß', 'grün / klein', 'grün / groß'], $p->variants->pluck('title')->all());
+        $this->assertSame([['rot', 'groß'], ['grün', 'klein'], ['grün', 'groß']], $p->variants->map(fn ($v) => [$v->option1, $v->option2])->all());
+        $this->assertSame(['rot', 'grün'], $p->options[0]['values']);
+        $this->assertSame(['klein', 'groß'], $p->options[1]['values']);
+    }
+
+    public function test_option_values_without_variant_are_dropped_and_last_variant_stays(): void
+    {
+        $c = Livewire::test(Create::class)
+            ->set('title', 'Becher')
+            ->set('options.0.name', 'Farbe')->set('options.0.values', 'rot, blau')
+            ->set('defaultPrice', '5');
+
+        $c->call('removeRow', 'rot');
+        $c->call('removeRow', 'blau')->assertHasErrors('rows');
+        $this->assertSame(['blau'], array_keys($c->get('rows')));
+
+        // Geänderte Werte verwerfen Ausschlüsse, die es nicht mehr gibt
+        $c->set('options.0.values', 'gelb, blau');
+        $this->assertSame([], $c->get('excluded'));
+        $c->call('removeRow', 'gelb');
+
+        $c->set('rows.blau.sku', 'BE-B')->call('save')->assertHasNoErrors();
+        $p = Product::with('variants')->sole();
+        $this->assertSame(['blau'], $p->variants->pluck('option1')->all());
+        $this->assertSame(['blau'], $p->options[0]['values']);
+    }
+
     public function test_metafields_and_add_variant(): void
     {
         $this->queueShopify($this->productsPage([$this->shopifyNode()]));

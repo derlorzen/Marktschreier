@@ -141,6 +141,9 @@ textarea.input { min-height: 140px; resize: vertical; line-height: 1.5; }
 .btn-primary:hover { background: var(--accent-strong); }
 .btn-warn { background: var(--warn); border-color: var(--warn); color: #fff; }
 .btn-sm { min-height: 32px; padding: 0 11px; font-size: 13px; }
+.btn-icon { padding: 0; width: 32px; justify-content: center; color: var(--muted); }
+.btn-icon:hover { color: var(--bad); }
+td.row-remove { width: 1%; text-align: right; }
 .btn[disabled] { opacity: .55; cursor: not-allowed; }
 .btn .spin { display: none; }
 .btn[data-loading] .spin, .btn.is-loading .spin { display: inline-block; }
