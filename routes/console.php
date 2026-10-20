@@ -90,6 +90,14 @@ Schedule::call(function () {
     }
 })->weeklyOn(1, '7:45')->timezone('Europe/Berlin')->name('weekly-review');
 
+Schedule::call(function () {
+    $last = now()->timezone('Europe/Berlin')->subMonthNoOverflow();
+    $title = 'Monatsabschluss '.$last->locale('de')->translatedFormat('F Y');
+    foreach (\App\Models\User::where('active', true)->where('mail_monthly', true)->get() as $user) {
+        \Illuminate\Support\Facades\Mail::to($user->email)->queue(new \App\Mail\MonthlyReportMail($last->year, $last->month, $title));
+    }
+})->monthlyOn(1, '7:30')->timezone('Europe/Berlin')->name('monthly-report');
+
 Artisan::command('marktschreier:alerts', function () {
     app(\App\Services\Alerts\AlertChecks::class)->run();
     $this->info(\App\Models\Alert::open()->count().' offene Hinweise');

@@ -28,12 +28,15 @@ class Account extends Component
 
     public bool $mailWeekly = true;
 
+    public bool $mailMonthly = false;
+
     public function mount(): void
     {
         $this->name = auth()->user()->name;
         $this->email = auth()->user()->email;
         $this->mailAlerts = (bool) (auth()->user()->mail_alerts ?? true);
         $this->mailWeekly = (bool) (auth()->user()->mail_weekly ?? true);
+        $this->mailMonthly = (bool) (auth()->user()->mail_monthly ?? false);
     }
 
     public function saveProfile(): void
@@ -49,7 +52,7 @@ class Account extends Component
 
     public function saveMailPrefs(): void
     {
-        auth()->user()->update(['mail_alerts' => $this->mailAlerts, 'mail_weekly' => $this->mailWeekly]);
+        auth()->user()->update(['mail_alerts' => $this->mailAlerts, 'mail_weekly' => $this->mailWeekly, 'mail_monthly' => $this->mailMonthly]);
         $this->notice = 'Mail-Einstellungen gespeichert.';
     }
 

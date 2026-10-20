@@ -27,6 +27,7 @@
         <div class="card-pad stack">
             <label class="check"><input type="checkbox" wire:model="mailAlerts"> Sofort bei Fehlern (Abgleich fehlgeschlagen, Verbindung gestört, ausverkauft)</label>
             <label class="check"><input type="checkbox" wire:model="mailWeekly"> Wochenrückblick am Montagmorgen</label>
+            <label class="check"><input type="checkbox" wire:model="mailMonthly"> Monatsabschluss als PDF am 1. des Monats</label>
             <div><button class="btn btn-primary" type="submit">Speichern</button></div>
         </div>
     </form>

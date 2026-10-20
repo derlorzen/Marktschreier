@@ -26,6 +26,10 @@
             ['route' => 'stock', 'match' => 'stock', 'label' => 'Bestand', 'icon' => 'M3 7l9-4 9 4-9 4-9-4zM3 7v10l9 4 9-4V7M12 11v10'],
             ['route' => 'pricing', 'match' => 'pricing', 'label' => 'Preisregeln', 'icon' => 'M7 3h10a1 1 0 0 1 1 1v16a1 1 0 0 1-1 1H7a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1zM9 7h6M9 11h1M12 11h1M15 11h0M9 15h1M12 15h1M9 18h1M12 18h1M15 15v3'],
         ],
+        'Auswerten' => [
+            ['route' => 'reports', 'match' => 'reports', 'label' => 'Berichte', 'icon' => 'M5 3h10l4 4v14H5zM15 3v4h4M8 13h8M8 17h5'],
+            ['route' => 'calculator', 'match' => 'calculator', 'label' => 'Rechner', 'icon' => 'M6 3h12v18H6zM9 7h6M9 11h1M12 11h1M15 11h0M9 15h1M12 15h1M15 15v3'],
+        ],
         'System' => [
             ['route' => 'sync', 'match' => 'sync', 'label' => 'Abgleich', 'icon' => 'M4 12a8 8 0 0 1 14-5.3M20 12a8 8 0 0 1-14 5.3M18 3v4h-4M6 21v-4h4'],
             ['route' => auth()->user()?->isAdmin() ? 'settings' : 'settings.account', 'match' => 'settings*', 'label' => auth()->user()?->isAdmin() ? 'Einstellungen' : 'Mein Konto', 'icon' => 'M12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6ZM19 12l2-1-1-3-2 .3-1.4-1.4.3-2-3-1-1 2h-2l-1-2-3 1 .3 2L5.3 9 3 8.7l-1 3 2 1v2l-2 1 1 3 2-.3 1.4 1.4-.3 2 3 1 1-2h2l1 2 3-1-.3-2 1.4-1.4 2 .3 1-3-2-1Z'],

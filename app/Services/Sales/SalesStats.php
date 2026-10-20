@@ -25,11 +25,18 @@ class SalesStats
     public function period(int $days, ?Carbon $until = null): array
     {
         $until ??= now();
-        $key = $days.'|'.$until->format('Y-m-d H');
+
+        return $this->between($until->copy()->subDays($days), $until) + ['days' => $days];
+    }
+
+    /** Auswertung für einen festen Zeitraum, z. B. einen Kalendermonat. */
+    public function between(Carbon $from, Carbon $until): array
+    {
+        $key = $from->format('Y-m-d H').'|'.$until->format('Y-m-d H');
         if (isset($this->cache[$key])) {
             return $this->cache[$key];
         }
-        $from = $until->copy()->subDays($days);
+        $days = max(1, (int) round($from->diffInDays($until)));
         $channels = Channel::all()->keyBy('id');
 
         $blank = fn () => ['orders' => 0, 'quantity' => 0.0, 'revenue_gross' => 0.0, 'revenue_net' => 0.0, 'profit' => 0.0, 'items_without_cost' => 0];

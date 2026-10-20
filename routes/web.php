@@ -42,6 +42,16 @@ Route::middleware('auth')->group(function () {
     })->name('products.close-all');
     Route::livewire('/hinweise', \App\Livewire\Alerts::class)->name('alerts');
     Route::livewire('/chancen', \App\Livewire\Opportunities::class)->name('opportunities');
+    Route::livewire('/berichte', \App\Livewire\Reports::class)->name('reports');
+    Route::get('/berichte/monatsabschluss/{year}/{month}.pdf', function (int $year, int $month, \App\Services\Reports\MonthlyReport $report) {
+        abort_unless($month >= 1 && $month <= 12 && $year >= 2000 && $year <= 2100, 404);
+
+        return response($report->pdf($year, $month), 200, [
+            'Content-Type' => 'application/pdf',
+            'Content-Disposition' => 'attachment; filename="'.\App\Services\Reports\MonthlyReport::fileName($year, $month).'"',
+        ]);
+    })->whereNumber(['year', 'month'])->name('reports.monthly-pdf');
+    Route::livewire('/rechner', \App\Livewire\Calculator::class)->name('calculator');
     Route::livewire('/kalender', \App\Livewire\Calendar::class)->name('calendar');
     Route::livewire('/werbung', \App\Livewire\Ads::class)->name('ads');
     Route::livewire('/preiswaechter', \App\Livewire\PriceWatches::class)->name('price-watches');
