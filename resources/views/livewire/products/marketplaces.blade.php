@@ -66,7 +66,10 @@
                                                 <div><button class="btn btn-sm btn-primary" wire:click="amazonCreate({{ $v->id }})">Angebot anlegen <span class="spin" wire:loading wire:target="amazonCreate"></span></button></div>
                                             </div>
                                         @else
-                                            <button class="btn btn-sm" wire:click="amazonLookup({{ $v->id }})" @disabled(blank($v->barcode)) title="{{ blank($v->barcode) ? 'GTIN fehlt' : '' }}">Bei Amazon suchen <span class="spin" wire:loading wire:target="amazonLookup({{ $v->id }})"></span></button>
+                                            <div class="row" style="gap:6px">
+                                                <button class="btn btn-sm" wire:click="amazonLookup({{ $v->id }})" @disabled(blank($v->barcode)) title="{{ blank($v->barcode) ? 'GTIN fehlt' : '' }}">Bei Amazon suchen <span class="spin" wire:loading wire:target="amazonLookup({{ $v->id }})"></span></button>
+                                                <button class="btn btn-sm" wire:click="$set('newProductFor', {{ $v->id }})">Neu anlegen</button>
+                                            </div>
                                         @endif
                                     @endif
                                 @endif
@@ -78,6 +81,10 @@
                 </div>
             @else
                 <p class="muted small" style="margin:0">Ohne Verbindung zeigt Marktschreier hier nur den hinterlegten Preis. Verkäufe auf {{ $p['channel']->name }} kommen trotzdem über Billbee herein.</p>
+            @endif
+
+            @if ($provider === 'amazon' && $newProductFor && $p['connected'])
+                <livewire:products.amazon-new-product :variant-id="$newProductFor" :key="'anp'.$newProductFor" />
             @endif
 
             @if ($provider === 'ebay' && $ebayForm && $p['connected'])

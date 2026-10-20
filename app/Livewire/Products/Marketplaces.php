@@ -39,7 +39,16 @@ class Marketplaces extends Component
     // Amazon: Treffer je Variante [variant_id => list]
     public array $amazonMatches = [];
 
+    /** Variante, für die gerade ein neues Amazon-Produkt angelegt wird */
+    public ?int $newProductFor = null;
+
     public array $amazonChoice = [];
+
+    #[\Livewire\Attributes\On('close-amazon-new')]
+    public function closeNewProduct(): void
+    {
+        $this->newProductFor = null;
+    }
 
     public function mount(Product $product): void
     {
@@ -142,14 +151,19 @@ class Marketplaces extends Component
     {
         $variant = $this->product->variants()->findOrFail($variantId);
         if (blank($variant->barcode)) {
-            $this->error = 'Ohne GTIN lässt sich das Produkt bei Amazon nicht finden. Neue Produkte (eigene ASIN) legst du vorerst in Seller Central an.';
+            $this->error = 'Ohne GTIN lässt sich das Produkt bei Amazon nicht finden. Lege es als neues Produkt an (Befreiung von der GTIN in Seller Central beantragen).';
+            $this->newProductFor = $variantId;
 
             return;
         }
         try {
             $this->amazonMatches[$variantId] = $amazon->findByGtin($variant->barcode);
             $this->amazonChoice[$variantId] = $this->amazonMatches[$variantId][0]['asin'] ?? '';
-            $this->error = $this->amazonMatches[$variantId] ? null : 'Zu dieser GTIN gibt es bei Amazon noch kein Produkt. Das muss einmal in Seller Central angelegt werden.';
+            $this->error = null;
+            if (! $this->amazonMatches[$variantId]) {
+                $this->notice = 'Zu dieser GTIN gibt es bei Amazon noch kein Produkt. Du kannst es hier neu anlegen.';
+                $this->newProductFor = $variantId;
+            }
         } catch (\Throwable $e) {
             $this->fail($e);
         }
