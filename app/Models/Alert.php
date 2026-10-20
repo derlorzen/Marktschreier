@@ -40,7 +40,7 @@ class Alert extends Model
         return [
             'sync_failed' => 'Abgleich fehlgeschlagen', 'connection' => 'Verbindung', 'stockout' => 'Bestand',
             'loss' => 'Verlust', 'listing_error' => 'Angebot', 'oversell' => 'Überverkauf', 'buybox' => 'Buy Box',
-            'release' => 'Release', 'ads' => 'Werbung', 'backup' => 'Sicherung',
+            'release' => 'Release', 'calendar' => 'Kalender', 'ads' => 'Werbung', 'backup' => 'Sicherung',
         ][$type] ?? $type;
     }
 }

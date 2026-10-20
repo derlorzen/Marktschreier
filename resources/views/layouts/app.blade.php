@@ -18,6 +18,7 @@
         ],
         'Verkaufen' => [
             ['route' => 'ads', 'match' => 'ads', 'label' => 'Werbung', 'icon' => 'M3 11l15-6v14L3 13v-2zM7 13v5a2 2 0 0 0 4 0v-3'],
+            ['route' => 'calendar', 'match' => 'calendar', 'label' => 'Kalender', 'icon' => 'M4 6h16v14H4zM4 10h16M8 3v4M16 3v4'],
             ['route' => 'price-watches', 'match' => 'price-watches', 'label' => 'Preiswächter', 'icon' => 'M12 2l7 4v6c0 5-3.5 8.5-7 10-3.5-1.5-7-5-7-10V6l7-4zM9 12l2 2 4-4'],
         ],
         'Sortiment' => [

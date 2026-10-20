@@ -41,6 +41,24 @@ class AppServiceProvider extends ServiceProvider
             }
             $alerts->resolveMissing('buybox', $keys);
         });
+        \App\Services\Alerts\AlertChecks::register('calendar', function (\App\Services\Alerts\AlertService $alerts) {
+            $keys = [];
+            $events = \App\Models\CalendarEvent::where('starts_on', '>=', now()->toDateString())
+                ->where('starts_on', '<=', now()->addDays(90)->toDateString())->get();
+            foreach ($events as $e) {
+                $days = $e->daysUntil();
+                if ($days > $e->remind_days) {
+                    continue;
+                }
+                $keys[] = $key = 'calendar:'.$e->id;
+                $products = count($e->product_ids ?? []);
+                $alerts->raise($key, 'calendar', 'info',
+                    ($days === 0 ? 'Heute: ' : "In {$days} Tagen: ").$e->title,
+                    trim(($products ? "{$products} passende Artikel: Bestand prüfen, Preise und Werbung vorbereiten. " : '').(string) $e->notes) ?: null,
+                    '/kalender');
+            }
+            $alerts->resolveMissing('calendar', $keys);
+        });
         \Illuminate\Support\Facades\Gate::define('admin', fn (\App\Models\User $user) => $user->isAdmin() && $user->active);
         //
     }

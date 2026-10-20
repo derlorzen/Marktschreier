@@ -24,6 +24,14 @@ class AlertChecks
     {
     }
 
+    /** Nur eine zusätzliche Prüfung ausführen, z. B. nach einer Änderung im Kalender. */
+    public function runOnly(string $name): void
+    {
+        if (isset(self::$extra[$name])) {
+            (self::$extra[$name])($this->alerts);
+        }
+    }
+
     public function run(): void
     {
         $opps = $this->finder->all(includeDismissed: true);
