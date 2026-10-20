@@ -47,7 +47,12 @@ code, .mono { font-family: ui-monospace, "IBM Plex Mono", Menlo, monospace; font
 .sidebar {
   background: var(--surface); border-right: 1px solid var(--line); padding: 18px 12px;
   display: flex; flex-direction: column; gap: 4px; position: sticky; top: 0; height: 100vh;
+  overflow-y: auto; overscroll-behavior: contain;
 }
+.skip-link { position: absolute; left: 12px; top: -60px; z-index: 60; padding: 8px 14px; border-radius: var(--radius); background: var(--inverse); color: #fff; text-decoration: none; font-weight: 600; }
+.skip-link:focus { top: 12px; }
+.main:focus { outline: none; }
+.btn, .nav-toggle, .linkbtn { touch-action: manipulation; }
 .brand { display: flex; align-items: center; gap: 10px; padding: 4px 8px 18px; font-weight: 700; font-size: 17px; color: var(--ink); text-decoration: none; }
 .brand-mark { width: 30px; height: 30px; border-radius: 8px; background: var(--accent-bg); color: #fff; display: grid; place-items: center; font-size: 15px; }
 .nav-link {
@@ -80,7 +85,7 @@ code, .mono { font-family: ui-monospace, "IBM Plex Mono", Menlo, monospace; font
   /* Feste Zeilenhöhen, sonst verteilt das Raster die Bildschirmhöhe auch auf die Kopfleiste */
   .shell { grid-template-columns: 1fr; grid-template-rows: auto 1fr; }
   /* Auf schmalen Bildschirmen: Kopfleiste mit Menüknopf, Navigation klappt darunter auf */
-  .sidebar { position: sticky; top: 0; z-index: 40; height: auto; gap: 0; padding: 0; border-right: 0; border-bottom: 1px solid var(--line); }
+  .sidebar { position: sticky; top: 0; z-index: 40; height: auto; overflow: visible; gap: 0; padding: 0; border-right: 0; border-bottom: 1px solid var(--line); }
   .sidebar-top { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 10px 16px; }
   .brand { padding: 0; min-width: 0; }
   .nav-toggle { display: inline-flex; flex-shrink: 0; }
@@ -151,8 +156,9 @@ td.row-remove { width: 1%; text-align: right; }
   .variant-table, .variant-table tbody { display: block; }
   table.list.variant-table tr { display: grid; grid-template-columns: 1fr 1fr; gap: 8px 10px; align-items: end; padding: 12px 0; border-bottom: 1px solid var(--line); }
   table.list.variant-table td { display: block; padding: 0; border: 0; width: auto; }
-  table.list.variant-table td.v-name { grid-column: 1; grid-row: 1; align-self: center; }
+  table.list.variant-table td.v-name { grid-column: 1; grid-row: 1; align-self: center; min-width: 0; white-space: normal; overflow-wrap: anywhere; }
   table.list.variant-table td.row-remove { grid-column: 2; grid-row: 1; justify-self: end; }
+  .variant-table .btn-icon { width: 40px; min-height: 40px; }
   table.list.variant-table td.v-sku { grid-column: 1; }
   table.list.variant-table td.v-gtin { grid-column: 2; }
   table.list.variant-table td.v-price { grid-column: 1; }

@@ -113,6 +113,23 @@ class CatalogWriterTest extends TestCase
         $this->assertSame('', $c->get('rows')['rot']['sku']);
     }
 
+    public function test_option_values_containing_a_slash_are_kept_together(): void
+    {
+        Livewire::test(Create::class)
+            ->set('title', 'Socken')
+            ->set('options.0.name', 'Größe')->set('options.0.values', 'S / M, L / XL')
+            ->call('addOption')
+            ->set('options.1.name', 'Farbe')->set('options.1.values', 'rot')
+            ->set('defaultPrice', '4')
+            ->set('rows.S / M / rot.sku', 'SO-SM')->set('rows.L / XL / rot.sku', 'SO-LX')
+            ->call('save')->assertHasNoErrors();
+
+        $p = Product::with('variants')->sole();
+        $this->assertSame([['S / M', 'rot'], ['L / XL', 'rot']], $p->variants->map(fn ($v) => [$v->option1, $v->option2])->all());
+        $this->assertSame(['S / M', 'L / XL'], $p->options[0]['values']);
+        $this->assertSame(['rot'], $p->options[1]['values']);
+    }
+
     public function test_option_values_without_variant_are_dropped_and_last_variant_stays(): void
     {
         $c = Livewire::test(Create::class)
