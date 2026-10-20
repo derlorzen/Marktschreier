@@ -61,16 +61,34 @@ code, .mono { font-family: ui-monospace, "IBM Plex Mono", Menlo, monospace; font
 .sidebar-foot { margin-top: auto; border-top: 1px solid var(--line); padding-top: 12px; font-size: 13px; color: var(--muted); }
 .sidebar-foot form { display: inline; }
 .linkbtn { background: none; border: 0; padding: 0; color: var(--accent); cursor: pointer; font: inherit; }
+.sidebar-nav { display: flex; flex-direction: column; gap: 4px; flex: 1; }
+.nav-toggle {
+  display: none; align-items: center; gap: 8px; position: relative; min-height: 40px; padding: 8px 12px;
+  border: 1px solid var(--line-2); border-radius: var(--radius); background: var(--surface); color: var(--ink);
+  font: inherit; font-weight: 500; cursor: pointer;
+}
+.nav-toggle:hover { background: var(--tint-2); }
+.nav-toggle:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+.nav-toggle-dot { position: absolute; top: -3px; right: -3px; width: 10px; height: 10px; border-radius: 99px; background: var(--warn); border: 2px solid var(--surface); }
+.nav-toggle-dot.count-bad { background: var(--bad); }
 
 .main { min-width: 0; padding: 22px 28px 60px; }
 .page-head { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; margin-bottom: 16px; }
 .page-head .spacer { flex: 1; }
 
 @media (max-width: 860px) {
-  .shell { grid-template-columns: 1fr; }
-  .sidebar { position: static; height: auto; flex-direction: row; flex-wrap: wrap; align-items: center; padding: 10px 16px; border-right: 0; border-bottom: 1px solid var(--line); }
-  .brand { padding: 0 8px 0 0; }
-  .nav-section, .sidebar-foot { display: none; }
+  /* Feste Zeilenhöhen, sonst verteilt das Raster die Bildschirmhöhe auch auf die Kopfleiste */
+  .shell { grid-template-columns: 1fr; grid-template-rows: auto 1fr; }
+  /* Auf schmalen Bildschirmen: Kopfleiste mit Menüknopf, Navigation klappt darunter auf */
+  .sidebar { position: sticky; top: 0; z-index: 40; height: auto; gap: 0; padding: 0; border-right: 0; border-bottom: 1px solid var(--line); }
+  .sidebar-top { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 10px 16px; }
+  .brand { padding: 0; min-width: 0; }
+  .nav-toggle { display: inline-flex; flex-shrink: 0; }
+  .sidebar-nav { display: none; padding: 6px 12px 14px; border-top: 1px solid var(--line); max-height: calc(100vh - 62px); overflow-y: auto; overscroll-behavior: contain; }
+  .sidebar-nav.is-open { display: flex; }
+  .nav-section:first-child { padding-top: 6px; }
+  .nav-link { padding: 11px 10px; }
+  .sidebar-foot { margin-top: 10px; }
   .main { padding: 16px; }
 }
 
