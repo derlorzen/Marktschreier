@@ -95,6 +95,13 @@ class Users extends Component
         $this->notice = $user->active ? "{$user->name} ist wieder freigeschaltet." : "{$user->name} ist gesperrt und wurde abgemeldet.";
     }
 
+    public function resetTwoFactor(int $id): void
+    {
+        $user = User::findOrFail($id);
+        app(\App\Services\Auth\TwoFactor::class)->disable($user);
+        $this->notice = "Zwei-Faktor für {$user->name} zurückgesetzt. Beim nächsten Anmelden reicht das Passwort, danach neu einrichten.";
+    }
+
     public function resetPassword(int $id): void
     {
         $user = User::findOrFail($id);

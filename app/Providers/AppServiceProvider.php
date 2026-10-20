@@ -59,6 +59,13 @@ class AppServiceProvider extends ServiceProvider
             }
             $alerts->resolveMissing('calendar', $keys);
         });
+        \Illuminate\Auth\Notifications\ResetPassword::toMailUsing(fn ($user, string $token) => (new \Illuminate\Notifications\Messages\MailMessage)
+            ->subject('Marktschreier: Neues Passwort festlegen')
+            ->greeting('Hallo '.$user->name.',')
+            ->line('für deinen Zugang zu Marktschreier wurde ein neues Passwort angefordert.')
+            ->action('Neues Passwort festlegen', route('password.reset', ['token' => $token, 'email' => $user->email]))
+            ->line('Der Link gilt 60 Minuten. Wenn du das nicht warst, musst du nichts tun.')
+            ->salutation('Viele Grüße, Marktschreier'));
         \Illuminate\Support\Facades\Gate::define('admin', fn (\App\Models\User $user) => $user->isAdmin() && $user->active);
         //
     }

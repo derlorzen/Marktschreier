@@ -49,4 +49,51 @@
             <div><button class="btn btn-primary" type="submit">Passwort ändern</button></div>
         </div>
     </form>
+
+    <div class="card">
+        <div class="card-head"><h2>Zwei-Faktor-Anmeldung</h2>
+            @if ($user->hasTwoFactor())<span class="badge badge-ok">eingeschaltet</span>@else<span class="badge">aus</span>@endif
+        </div>
+        <div class="card-pad stack">
+            @if ($recoveryCodes)
+                <div class="notice notice-warn">
+                    <strong>Wiederherstellungscodes</strong>, jeder funktioniert einmal, falls das Handy fehlt. Jetzt notieren, sie werden nicht wieder angezeigt.
+                    <div class="mono" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:6px;margin-top:8px;user-select:all">
+                        @foreach ($recoveryCodes as $c)<span>{{ $c }}</span>@endforeach
+                    </div>
+                    <button class="btn btn-sm" style="margin-top:8px" wire:click="$set('recoveryCodes', null)">Notiert</button>
+                </div>
+            @endif
+            @if ($user->hasTwoFactor())
+                <p style="margin:0">Bei der Anmeldung fragt Marktschreier nach dem Code aus deiner Authenticator-App.</p>
+                @unless ($twoFactorRequired)
+                    <form class="row" wire:submit="disableTwoFactor">
+                        <input class="input" style="max-width:260px" type="password" wire:model="twoFactorPassword" placeholder="Passwort zur Bestätigung" autocomplete="current-password" aria-label="Passwort">
+                        <button class="btn" type="submit">Ausschalten</button>
+                        @error('twoFactorPassword') <span class="error">{{ $message }}</span> @enderror
+                    </form>
+                @else
+                    <p class="muted small" style="margin:0">Für Administratoren vorgeschrieben.</p>
+                @endunless
+            @elseif ($qr)
+                <div class="row" style="align-items:flex-start;gap:20px">
+                    <div style="background:#fff;padding:8px;border-radius:8px">{!! $qr !!}</div>
+                    <div class="stack" style="flex:1;min-width:240px">
+                        <p style="margin:0">Den QR-Code mit einer Authenticator-App scannen (z. B. Google Authenticator, Microsoft Authenticator, 1Password) und den angezeigten Code eingeben.</p>
+                        <p class="small muted" style="margin:0">Kein Scanner? Schlüssel von Hand eingeben: <span class="mono" style="user-select:all">{{ $secretText }}</span></p>
+                        <form class="row" wire:submit="confirmTwoFactor">
+                            <input class="input mono" style="max-width:160px" wire:model="twoFactorCode" inputmode="numeric" autocomplete="one-time-code" placeholder="123456" aria-label="Code aus der App">
+                            <button class="btn btn-primary" type="submit">Bestätigen</button>
+                            <button class="btn" type="button" wire:click="$set('pendingSecret', null)">Abbrechen</button>
+                        </form>
+                        @error('twoFactorCode') <span class="error">{{ $message }}</span> @enderror
+                    </div>
+                </div>
+            @else
+                @if ($twoFactorRequired)<div class="notice notice-warn"><strong>Für Administratoren vorgeschrieben.</strong> Bitte jetzt einrichten, vorher sind die anderen Seiten gesperrt.</div>@endif
+                <p style="margin:0">Schützt den Zugang zusätzlich mit einem Code vom Handy. Empfohlen für alle, die Einstellungen und Verbindungen verwalten.</p>
+                <div><button class="btn btn-primary" wire:click="startTwoFactor">Einrichten</button></div>
+            @endif
+        </div>
+    </div>
 </x-settings-shell>

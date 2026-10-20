@@ -55,11 +55,13 @@
                             @if (! $u->active)<span class="badge badge-bad">gesperrt</span>
                             @elseif ($u->must_change_password)<span class="badge badge-amber">Startpasswort</span>
                             @else<span class="badge badge-ok">aktiv</span>@endif
+                            @if ($u->hasTwoFactor())<span class="badge" title="Zwei-Faktor-Anmeldung eingeschaltet">2FA</span>@endif
                         </td>
                         <td class="small">{{ $u->last_login_at?->timezone('Europe/Berlin')->format('d.m.Y H:i') ?? 'noch nie' }}</td>
                         <td class="nowrap" style="text-align:right">
                             @if ($u->id !== auth()->id())
                                 <button class="btn btn-sm" wire:click="resetPassword({{ $u->id }})" wire:confirm="Neues Startpasswort für {{ $u->name }} erzeugen? Das bisherige gilt dann nicht mehr.">Neues Passwort</button>
+                                @if ($u->hasTwoFactor())<button class="btn btn-sm" wire:click="resetTwoFactor({{ $u->id }})" wire:confirm="Zwei-Faktor für {{ $u->name }} zurücksetzen, z. B. bei verlorenem Handy?">2FA zurücksetzen</button>@endif
                                 <button class="btn btn-sm" wire:click="toggleActive({{ $u->id }})">{{ $u->active ? 'Sperren' : 'Freischalten' }}</button>
                             @else
                                 <a class="btn btn-sm" href="{{ route('settings.account') }}" wire:navigate>Mein Konto</a>

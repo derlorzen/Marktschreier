@@ -19,7 +19,8 @@ class EnsureAccountUsable
 
             return redirect()->route('login')->with('flash', 'Dein Zugang ist gesperrt.');
         }
-        if ($user && $user->must_change_password && ! $request->routeIs('settings.account', 'logout') && ! $request->is('livewire*')) {
+        $mustAct = $user && ($user->must_change_password || (\App\Services\Auth\TwoFactor::requiredFor($user) && ! $user->hasTwoFactor()));
+        if ($mustAct && ! $request->routeIs('settings.account', 'logout') && ! $request->is('livewire*')) {
             return redirect()->route('settings.account');
         }
 

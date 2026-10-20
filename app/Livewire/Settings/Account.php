@@ -24,6 +24,58 @@ class Account extends Component
 
     public ?string $notice = null;
 
+    /** Zwei-Faktor einrichten: Geheimnis nur bis zur Bestätigung im Komponentenzustand (verschlüsselt). */
+    public ?string $pendingSecret = null;
+
+    public string $twoFactorCode = '';
+
+    public string $twoFactorPassword = '';
+
+    /** @var list<string>|null nur direkt nach dem Einrichten sichtbar */
+    public ?array $recoveryCodes = null;
+
+    public function startTwoFactor(\App\Services\Auth\TwoFactor $tf): void
+    {
+        $this->pendingSecret = encrypt($tf->newSecret());
+        $this->twoFactorCode = '';
+    }
+
+    public function confirmTwoFactor(\App\Services\Auth\TwoFactor $tf): void
+    {
+        $this->resetErrorBag();
+        if (! $this->pendingSecret) {
+            return;
+        }
+        $secret = decrypt($this->pendingSecret);
+        if (! $tf->verify($secret, $this->twoFactorCode)) {
+            $this->addError('twoFactorCode', 'Der Code stimmt nicht. Uhrzeit am Handy prüfen und den aktuellen Code eingeben.');
+
+            return;
+        }
+        $this->recoveryCodes = $tf->enable(auth()->user(), $secret);
+        $this->pendingSecret = null;
+        $this->twoFactorCode = '';
+        $this->notice = 'Zwei-Faktor-Anmeldung ist eingeschaltet.';
+    }
+
+    public function disableTwoFactor(\App\Services\Auth\TwoFactor $tf): void
+    {
+        $this->resetErrorBag();
+        if (! \Illuminate\Support\Facades\Hash::check($this->twoFactorPassword, auth()->user()->password)) {
+            $this->addError('twoFactorPassword', 'Das Passwort stimmt nicht.');
+
+            return;
+        }
+        if (\App\Services\Auth\TwoFactor::requiredFor(auth()->user())) {
+            $this->addError('twoFactorPassword', 'Für Administratoren ist die Zwei-Faktor-Anmeldung vorgeschrieben.');
+
+            return;
+        }
+        $tf->disable(auth()->user());
+        $this->twoFactorPassword = '';
+        $this->notice = 'Zwei-Faktor-Anmeldung ist ausgeschaltet.';
+    }
+
     public bool $mailAlerts = true;
 
     public bool $mailWeekly = true;
@@ -79,6 +131,9 @@ class Account extends Component
 
     public function render()
     {
-        return view('livewire.settings.account', ['user' => auth()->user()]);
+        return view('livewire.settings.account', [
+            'qr' => $this->pendingSecret ? app(\App\Services\Auth\TwoFactor::class)->qrSvg(auth()->user(), decrypt($this->pendingSecret)) : null,
+            'secretText' => $this->pendingSecret ? trim(chunk_split(decrypt($this->pendingSecret), 4, ' ')) : null,
+            'twoFactorRequired' => \App\Services\Auth\TwoFactor::requiredFor(auth()->user()),'user' => auth()->user()]);
     }
 }

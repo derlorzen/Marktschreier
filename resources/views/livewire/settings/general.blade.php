@@ -25,6 +25,7 @@
                 <input class="input mono" wire:model="aiModel">
             </label>
             <p class="small muted span-2" style="margin:0">Für Vorschläge werden nur Titel, Beschreibung, Marke, Merkmale und Varianten des Artikels an die Claude API geschickt, keine Kunden- oder Bestelldaten.</p>
+            <label class="check span-2"><input type="checkbox" wire:model="require2fa"> Zwei-Faktor-Anmeldung für Administratoren vorschreiben</label>
             <div><button class="btn btn-primary" type="submit">Speichern</button></div>
         </div>
     </form>

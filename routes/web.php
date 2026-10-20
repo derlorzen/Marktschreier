@@ -11,6 +11,9 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Route;
 
 Route::livewire('/login', Login::class)->middleware('guest')->name('login');
+Route::livewire('/login/code', \App\Livewire\TwoFactorChallenge::class)->middleware('guest')->name('login.two-factor');
+Route::livewire('/passwort-vergessen', \App\Livewire\ForgotPassword::class)->middleware(['guest', 'throttle:6,1'])->name('password.request');
+Route::livewire('/passwort-neu/{token}', \App\Livewire\ResetPassword::class)->middleware('guest')->name('password.reset');
 
 Route::post('/logout', function (Request $request) {
     Auth::logout();

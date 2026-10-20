@@ -18,6 +18,8 @@ class General extends Component
 
     public string $minProfit = '';
 
+    public bool $require2fa = false;
+
     public ?string $notice = null;
 
     public string $aiKey = '';
@@ -26,6 +28,7 @@ class General extends Component
 
     public function mount(): void
     {
+        $this->require2fa = Setting::get('security.require_2fa_admins', '0') === '1';
         $this->company = (string) Setting::get('general.company');
         $this->vatRate = Format::decimalForInput(Setting::get('billbee.vat_rate', 19));
         $this->minProfit = Format::decimalForInput(Setting::get('opportunities.min_profit', 1));
@@ -56,7 +59,8 @@ class General extends Component
             Setting::put('ai.api_key', trim($this->aiKey));
         }
         $this->aiKey = '';
-        $this->notice = 'Gespeichert.';
+        Setting::put('security.require_2fa_admins', $this->require2fa ? '1' : '0');
+        $this->notice = 'Gespeichert.'.($this->require2fa && ! auth()->user()->hasTwoFactor() ? ' Bitte jetzt unter „Mein Konto“ die Zwei-Faktor-Anmeldung einrichten.' : '');
     }
 
     public function render()
