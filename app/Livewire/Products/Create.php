@@ -35,6 +35,38 @@ class Create extends Component
 
     public string $defaultPrice = '';
 
+    /** @var list<string> Kombinationen, die es nicht gibt (z. B. „rot / klein“) */
+    public array $excluded = [];
+
+    /** @var array<string, array{sku: string, barcode: string, price: string}> Eingaben entfernter Zeilen, für das Wiederherstellen */
+    public array $removedRows = [];
+
+    public function removeRow(string $key): void
+    {
+        if (! array_key_exists($key, $this->rows)) {
+            return;
+        }
+        if (count($this->rows) <= 1) {
+            $this->addError('rows', 'Mindestens eine Variante muss bleiben.');
+
+            return;
+        }
+        $this->excluded[] = $key;
+        $this->syncRows();
+    }
+
+    public function restoreRow(string $key): void
+    {
+        $this->excluded = array_values(array_diff($this->excluded, [$key]));
+        $this->syncRows();
+    }
+
+    public function restoreAll(): void
+    {
+        $this->excluded = [];
+        $this->syncRows();
+    }
+
     public function addOption(): void
     {
         if (count($this->options) < 3) {
@@ -78,17 +110,45 @@ class Create extends Component
         return array_slice($combos, 0, 100);
     }
 
+    /** @return array<string, list<string>> Anzeigename der Variante => Optionswerte */
+    private function comboParts(): array
+    {
+        $parts = [];
+        foreach ($this->combinations() as $combo) {
+            $parts[implode(' / ', $combo) ?: 'Standard'] = $combo;
+        }
+
+        return $parts;
+    }
+
     private function syncRows(): void
     {
+        $keys = array_map(fn ($combo) => implode(' / ', $combo) ?: 'Standard', $this->combinations());
+        // Ausschlüsse für Kombinationen, die es durch geänderte Werte nicht mehr gibt, verwerfen
+        $this->excluded = array_values(array_intersect(array_unique($this->excluded), $keys));
+        // Sind alle ausgeschlossen, bleibt die erste Kombination, damit es eine Variante gibt
+        if ($keys && count($this->excluded) >= count($keys)) {
+            $this->excluded = array_values(array_diff($this->excluded, [$keys[0]]));
+        }
         $new = [];
-        foreach ($this->combinations() as $combo) {
-            $key = implode(' / ', $combo) ?: 'Standard';
-            $new[$key] = $this->rows[$key] ?? ['sku' => '', 'barcode' => '', 'price' => $this->defaultPrice];
+        foreach ($keys as $key) {
+            if (in_array($key, $this->excluded, true)) {
+                // Eingaben aufheben, damit sie beim Wiederherstellen zurückkommen
+                if (isset($this->rows[$key])) {
+                    $this->removedRows[$key] = $this->rows[$key];
+                }
+
+                continue;
+            }
+            $new[$key] = $this->rows[$key] ?? $this->removedRows[$key] ?? ['sku' => '', 'barcode' => '', 'price' => $this->defaultPrice];
+            unset($this->removedRows[$key]);
             if ($new[$key]['price'] === '' && $this->defaultPrice !== '') {
                 $new[$key]['price'] = $this->defaultPrice;
             }
         }
         $this->rows = $new;
+        // Nur Eingaben noch ausgeschlossener Kombinationen behalten
+        $this->removedRows = array_intersect_key($this->removedRows, array_flip($this->excluded));
     }
 
     public function mount(): void
@@ -120,8 +180,16 @@ class Create extends Component
         }
 
         $product = DB::transaction(function () {
-            $opts = collect($this->options)->filter(fn ($o) => trim($o['name']) !== '' && trim($o['values']) !== '')->values()
-                ->map(fn ($o, $i) => ['name' => trim($o['name']), 'position' => $i + 1, 'values' => array_values(array_filter(array_map('trim', explode(',', $o['values']))))])->all();
+            // Nur Werte übernehmen, die in einer verbliebenen Variante vorkommen (Reihenfolge wie eingegeben)
+            // Teile aus den Kombinationen nehmen, nicht aus dem Namen: Werte dürfen selbst „ / “ enthalten
+            $comboParts = $this->comboParts();
+            $used = collect(array_keys($this->rows))->map(fn ($k) => $comboParts[$k] ?? []);
+            // Gleicher Filter wie in combinations(), damit die Positionen zu den Varianten passen
+            $opts = collect($this->options)->filter(fn ($o) => trim($o['name']) !== '' && array_filter(array_map('trim', explode(',', $o['values']))))->values()
+                ->map(fn ($o, $i) => ['name' => trim($o['name']), 'position' => $i + 1, 'values' => array_values(array_filter(
+                    array_map('trim', explode(',', $o['values'])),
+                    fn ($v) => $v !== '' && $used->contains(fn ($parts) => ($parts[$i] ?? null) === $v)
+                ))])->all();
             $product = Product::create([
                 'title' => trim($this->title), 'vendor' => trim($this->vendor) ?: null, 'product_type' => trim($this->productType) ?: null,
                 'description_html' => trim($this->description) ? '<p>'.nl2br(e(trim($this->description))).'</p>' : null,
@@ -130,7 +198,7 @@ class Create extends Component
             ]);
             $pos = 1;
             foreach ($this->rows as $key => $row) {
-                $parts = $key === 'Standard' ? [] : explode(' / ', $key);
+                $parts = $comboParts[$key] ?? [];
                 Variant::create([
                     'product_id' => $product->id, 'title' => $key === 'Standard' ? 'Default Title' : $key, 'position' => $pos++,
                     'sku' => trim($row['sku']), 'barcode' => trim($row['barcode']) ?: null, 'price' => Format::parseDecimal($row['price']),

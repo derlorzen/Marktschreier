@@ -47,7 +47,12 @@ code, .mono { font-family: ui-monospace, "IBM Plex Mono", Menlo, monospace; font
 .sidebar {
   background: var(--surface); border-right: 1px solid var(--line); padding: 18px 12px;
   display: flex; flex-direction: column; gap: 4px; position: sticky; top: 0; height: 100vh;
+  overflow-y: auto; overscroll-behavior: contain;
 }
+.skip-link { position: absolute; left: 12px; top: -60px; z-index: 60; padding: 8px 14px; border-radius: var(--radius); background: var(--inverse); color: #fff; text-decoration: none; font-weight: 600; }
+.skip-link:focus { top: 12px; }
+.main:focus { outline: none; }
+.btn, .nav-toggle, .linkbtn { touch-action: manipulation; }
 .brand { display: flex; align-items: center; gap: 10px; padding: 4px 8px 18px; font-weight: 700; font-size: 17px; color: var(--ink); text-decoration: none; }
 .brand-mark { width: 30px; height: 30px; border-radius: 8px; background: var(--accent-bg); color: #fff; display: grid; place-items: center; font-size: 15px; }
 .nav-link {
@@ -61,16 +66,34 @@ code, .mono { font-family: ui-monospace, "IBM Plex Mono", Menlo, monospace; font
 .sidebar-foot { margin-top: auto; border-top: 1px solid var(--line); padding-top: 12px; font-size: 13px; color: var(--muted); }
 .sidebar-foot form { display: inline; }
 .linkbtn { background: none; border: 0; padding: 0; color: var(--accent); cursor: pointer; font: inherit; }
+.sidebar-nav { display: flex; flex-direction: column; gap: 4px; flex: 1; }
+.nav-toggle {
+  display: none; align-items: center; gap: 8px; position: relative; min-height: 40px; padding: 8px 12px;
+  border: 1px solid var(--line-2); border-radius: var(--radius); background: var(--surface); color: var(--ink);
+  font: inherit; font-weight: 500; cursor: pointer;
+}
+.nav-toggle:hover { background: var(--tint-2); }
+.nav-toggle:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+.nav-toggle-dot { position: absolute; top: -3px; right: -3px; width: 10px; height: 10px; border-radius: 99px; background: var(--warn); border: 2px solid var(--surface); }
+.nav-toggle-dot.count-bad { background: var(--bad); }
 
 .main { min-width: 0; padding: 22px 28px 60px; }
 .page-head { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; margin-bottom: 16px; }
 .page-head .spacer { flex: 1; }
 
 @media (max-width: 860px) {
-  .shell { grid-template-columns: 1fr; }
-  .sidebar { position: static; height: auto; flex-direction: row; flex-wrap: wrap; align-items: center; padding: 10px 16px; border-right: 0; border-bottom: 1px solid var(--line); }
-  .brand { padding: 0 8px 0 0; }
-  .nav-section, .sidebar-foot { display: none; }
+  /* Feste Zeilenhöhen, sonst verteilt das Raster die Bildschirmhöhe auch auf die Kopfleiste */
+  .shell { grid-template-columns: 1fr; grid-template-rows: auto 1fr; }
+  /* Auf schmalen Bildschirmen: Kopfleiste mit Menüknopf, Navigation klappt darunter auf */
+  .sidebar { position: sticky; top: 0; z-index: 40; height: auto; overflow: visible; gap: 0; padding: 0; border-right: 0; border-bottom: 1px solid var(--line); }
+  .sidebar-top { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 10px 16px; }
+  .brand { padding: 0; min-width: 0; }
+  .nav-toggle { display: inline-flex; flex-shrink: 0; }
+  .sidebar-nav { display: none; padding: 6px 12px 14px; border-top: 1px solid var(--line); max-height: calc(100vh - 62px); overflow-y: auto; overscroll-behavior: contain; }
+  .sidebar-nav.is-open { display: flex; }
+  .nav-section:first-child { padding-top: 6px; }
+  .nav-link { padding: 11px 10px; }
+  .sidebar-foot { margin-top: 10px; }
   .main { padding: 16px; }
 }
 
@@ -124,6 +147,26 @@ textarea.input { min-height: 140px; resize: vertical; line-height: 1.5; }
 .btn-primary:hover { background: var(--accent-strong); }
 .btn-warn { background: var(--warn); border-color: var(--warn); color: #fff; }
 .btn-sm { min-height: 32px; padding: 0 11px; font-size: 13px; }
+.btn-icon { padding: 0; width: 32px; justify-content: center; color: var(--muted); }
+.btn-icon:hover { color: var(--bad); }
+td.row-remove { width: 1%; text-align: right; }
+.variant-table td.v-price { width: 120px; }
+/* Variantentabelle auf dem Handy: je Variante eine Karte mit beschrifteten Feldern */
+@media (max-width: 600px) {
+  .variant-table thead { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
+  .variant-table, .variant-table tbody { display: block; }
+  table.list.variant-table tr { display: grid; grid-template-columns: 1fr 1fr; gap: 8px 10px; align-items: end; padding: 12px 0; border-bottom: 1px solid var(--line); }
+  table.list.variant-table td { display: block; padding: 0; border: 0; width: auto; }
+  table.list.variant-table td.v-name { grid-column: 1; grid-row: 1; align-self: center; min-width: 0; white-space: normal; overflow-wrap: anywhere; }
+  table.list.variant-table td.row-remove { grid-column: 2; grid-row: 1; justify-self: end; }
+  .variant-table .btn-icon { width: 40px; min-height: 40px; }
+  table.list.variant-table td.v-sku { grid-column: 1; }
+  table.list.variant-table td.v-gtin { grid-column: 2; }
+  table.list.variant-table td.v-price { grid-column: 1; }
+  .variant-table td[data-label]::before { content: attr(data-label); display: block; font-size: 12px; font-weight: 600; color: var(--muted); margin-bottom: 4px; }
+  table.list.variant-table tbody tr:hover { background: none; }
+}
+
 .btn[disabled] { opacity: .55; cursor: not-allowed; }
 .btn .spin { display: none; }
 .btn[data-loading] .spin, .btn.is-loading .spin { display: inline-block; }

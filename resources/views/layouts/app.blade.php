@@ -39,12 +39,25 @@
     $unreadAlerts = auth()->check() ? \App\Models\Alert::unreadFor(auth()->user())->count() : 0;
     $badAlerts = $unreadAlerts ? \App\Models\Alert::unreadFor(auth()->user())->where('level', 'bad')->exists() : false;
 @endphp
+<a class="skip-link" href="#inhalt">Zum Inhalt springen</a>
 <div class="shell">
-    <aside class="sidebar">
-        <a class="brand" href="{{ route('dashboard') }}" wire:navigate>
-            <span class="brand-mark" aria-hidden="true">M</span>
-            <span>Marktschreier @if ($company = \App\Models\Setting::get('general.company'))<span class="brand-sub">{{ $company }}</span>@endif</span>
-        </a>
+    <aside class="sidebar" x-data="{ menuOpen: false }" @keydown.escape.window="if (menuOpen) { menuOpen = false; $refs.toggle.focus() }">
+        <div class="sidebar-top">
+            <a class="brand" href="{{ route('dashboard') }}" wire:navigate>
+                <span class="brand-mark" aria-hidden="true">M</span>
+                <span>Marktschreier @if ($company = \App\Models\Setting::get('general.company'))<span class="brand-sub">{{ $company }}</span>@endif</span>
+            </a>
+            <button type="button" class="nav-toggle" x-ref="toggle" aria-controls="main-nav" :aria-expanded="menuOpen.toString()" aria-expanded="false" @click="menuOpen = !menuOpen">
+                <svg x-show="!menuOpen" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M4 6h16M4 12h16M4 18h16"/></svg>
+                <svg x-show="menuOpen" style="display:none" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg>
+                <span x-text="menuOpen ? 'Schließen' : 'Menü'">Menü</span>
+                @if ($unreadAlerts || $pending)
+                    <span @class(['nav-toggle-dot', 'count-bad' => $badAlerts]) aria-hidden="true"></span>
+                    <span class="sr-only">Es gibt neue Hinweise oder offene Änderungen</span>
+                @endif
+            </button>
+        </div>
+        <nav id="main-nav" class="sidebar-nav" :class="{ 'is-open': menuOpen }" aria-label="Hauptmenü">
         @foreach ($nav as $section => $items)
             @if ($section !== '')<div class="nav-section">{{ $section }}</div>@endif
             @foreach ($items as $item)
@@ -64,8 +77,9 @@
             {{ auth()->user()?->name }}<br>
             <form method="POST" action="{{ route('logout') }}">@csrf<button class="linkbtn" type="submit">Abmelden</button></form>
         </div>
+        </nav>
     </aside>
-    <main class="main">
+    <main class="main" id="inhalt" tabindex="-1">
         {{ $slot }}
     </main>
 </div>
