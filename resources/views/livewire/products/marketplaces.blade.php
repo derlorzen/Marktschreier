@@ -67,7 +67,7 @@
                                             </div>
                                         @else
                                             <div class="row" style="gap:6px">
-                                                <button class="btn btn-sm" wire:click="amazonLookup({{ $v->id }})" @disabled(blank($v->barcode)) title="{{ blank($v->barcode) ? 'GTIN fehlt' : '' }}">Bei Amazon suchen <span class="spin" wire:loading wire:target="amazonLookup({{ $v->id }})"></span></button>
+                                                <button class="btn btn-sm" wire:click="amazonLookup({{ $v->id }})" @disabled((blank($v->barcode) && blank($v->asin)) || ! $v->active) title="{{ ! $v->active ? 'Variante ist inaktiv' : (blank($v->barcode) && blank($v->asin) ? 'GTIN oder ASIN fehlt' : '') }}">{{ $v->asin ? 'ASIN '.$v->asin.' nutzen' : 'Bei Amazon suchen' }} <span class="spin" wire:loading wire:target="amazonLookup({{ $v->id }})"></span></button>
                                                 <button class="btn btn-sm" wire:click="$set('newProductFor', {{ $v->id }})">Neu anlegen</button>
                                             </div>
                                         @endif

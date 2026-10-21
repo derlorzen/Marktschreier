@@ -57,7 +57,7 @@ class PlentyImporter
                 $this->importItem($item, $manufacturers->all(), $lang, $stats);
             }
 
-            $varQuery = ['with' => 'variationSalesPrices,variationBarcodes,variationAttributeValues,stock'];
+            $varQuery = ['with' => 'variationSalesPrices,variationBarcodes,variationAttributeValues,stock,marketIdentNumbers'];
             if ($since) {
                 $varQuery['relatedUpdatedBetween'] = $since->timestamp.','.now()->timestamp;
             }
@@ -98,10 +98,11 @@ class PlentyImporter
             }
             $product->save();
 
+            $assigned = $product->images()->whereNotNull('variant_ids')->get()->mapWithKeys(fn ($i) => [$i->url => $i->variant_ids]);
             $product->images()->delete();
             foreach (collect($item['itemImages'] ?? [])->sortBy('position')->values() as $i => $img) {
                 if (! empty($img['url'])) {
-                    ProductImage::create(['product_id' => $product->id, 'url' => $img['url'], 'alt' => $img['names'][0]['alternate'] ?? null, 'position' => $i + 1]);
+                    ProductImage::create(['product_id' => $product->id, 'url' => $img['url'], 'alt' => $img['names'][0]['alternate'] ?? null, 'position' => $i + 1, 'variant_ids' => $assigned[$img['url']] ?? null]);
                 }
             }
             $stats[$isNew ? 'products_new' : 'products_updated']++;
@@ -127,8 +128,13 @@ class PlentyImporter
             $remote = [
                 'sku' => (string) ($v['number'] ?? '') ?: null,
                 'barcode' => $v['variationBarcodes'][0]['code'] ?? null,
-                'price' => $price,
             ];
+            // Ohne Preis im gewählten Verkaufspreis: neue Variante mit 0, bestehender Preis bleibt
+            if ($price !== null) {
+                $remote['price'] = $price;
+            } elseif ($isNew) {
+                $remote['price'] = 0;
+            }
             if ($this->merge($variant, $remote, $isNew)) {
                 $product->update(['push_status' => Product::STATUS_CONFLICT]);
                 $stats['conflicts']++;
@@ -139,7 +145,31 @@ class PlentyImporter
                 'position' => (int) ($v['position'] ?? 0),
                 'cost_net' => isset($v['purchasePrice']) ? (float) $v['purchasePrice'] : $variant->cost_net,
                 'stock' => (int) floor($stock),
-            ])->save();
+            ]);
+            // Felder, die es nur in Marktschreier gibt: aus PlentyONE nur füllen, nie eine lokale Pflege überschreiben
+            $asin = collect($v['marketIdentNumbers'] ?? [])->first(fn ($m) => strtoupper((string) ($m['type'] ?? '')) === 'ASIN')['value'] ?? null;
+            $local = [
+                'asin' => Variant::validAsin($asin ? strtoupper(trim($asin)) : null) ? strtoupper(trim($asin)) : null,
+                'model' => ($v['model'] ?? '') ?: null,
+                'weight_g' => ! empty($v['weightG']) ? (int) $v['weightG'] : null,
+                'length_mm' => ! empty($v['lengthMM']) ? (int) $v['lengthMM'] : null,
+                'width_mm' => ! empty($v['widthMM']) ? (int) $v['widthMM'] : null,
+                'height_mm' => ! empty($v['heightMM']) ? (int) $v['heightMM'] : null,
+            ];
+            foreach ($local as $field => $value) {
+                if ($value !== null && ($isNew || $variant->getAttribute($field) === null)) {
+                    $variant->setAttribute($field, $value);
+                }
+            }
+            if ($isNew) {
+                $variant->active = (bool) ($v['isActive'] ?? true);
+            }
+            $variant->save();
+            if (($v['isMain'] ?? false) && ! $variant->is_main) {
+                // PlentyONE bleibt bis zum Umzug führend, auch bei der Hauptvariante
+                $product->variants()->whereKeyNot($variant->id)->update(['is_main' => false]);
+                $variant->forceFill(['is_main' => true])->save();
+            }
             if (($v['isMain'] ?? false) && ! $product->isLocallyChanged('status')) {
                 // Aktivität der Hauptvariante bestimmt, ob der Artikel sichtbar ist
                 $status = ($v['isActive'] ?? true) ? 'ACTIVE' : 'DRAFT';

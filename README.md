@@ -128,7 +128,7 @@ Für Hinweise, Wochenrückblick, Monatsabschluss und „Passwort vergessen“ br
 
 ### KI-Vorschläge (optional)
 
-`ANTHROPIC_API_KEY` setzen oder unter Einstellungen, Allgemein hinterlegen. Ohne Schlüssel bleiben die Textfelder einfach manuell.
+Claude (`ANTHROPIC_API_KEY`) oder ChatGPT (`OPENAI_API_KEY`, Modell über `OPENAI_MODEL`, Standard `gpt-6-luna`) setzen, Anbieter mit `AI_PROVIDER=anthropic|openai` wählen, oder alles unter Einstellungen, Allgemein hinterlegen. Ohne Schlüssel bleiben die Textfelder einfach manuell.
 
 ### Billbee
 

@@ -50,7 +50,7 @@ class AmazonService
         $mp = $this->client->marketplaceId();
         $stats = ['checked' => 0, 'found' => 0, 'errors' => 0];
 
-        Variant::whereNotNull('sku')->where('sku', '!=', '')->select(['id', 'sku'])->chunkById(20, function ($variants) use ($channel, $sellerId, $mp, &$stats) {
+        Variant::whereNotNull('sku')->where('sku', '!=', '')->select(['id', 'sku', 'asin', 'product_id'])->chunkById(20, function ($variants) use ($channel, $sellerId, $mp, &$stats) {
             $skus = $variants->pluck('sku')->all();
             $json = $this->client->request('GET', "/listings/2021-08-01/items/{$sellerId}", [
                 'marketplaceIds' => $mp, 'identifiers' => implode(',', $skus), 'identifiersType' => 'SKU',
@@ -92,6 +92,7 @@ class AmazonService
                 ]);
                 $listing->adoptRemotePrice();
                 $listing->save();
+                $this->rememberAsin($v, $summary['asin'] ?? null);
             }
         });
         $this->client->connection()->update(['listings_checked_at' => now()]);
@@ -150,6 +151,15 @@ class AmazonService
         ])->values()->all();
     }
 
+    /** ASIN an der Variante hinterlegen, wenn dort noch keine steht. Eine gepflegte ASIN wird nie überschrieben. */
+    private function rememberAsin(Variant $variant, ?string $asin): void
+    {
+        if (blank($variant->asin) && Variant::validAsin($asin)) {
+            $variant->forceFill(['asin' => $asin])->save();
+            \App\Models\ChangeLog::record($variant->product, 'asin', null, $asin, 'amazon', $variant);
+        }
+    }
+
     /**
      * Eigenes Angebot an eine bestehende ASIN hängen. Händlerversand mit Startbestand aus Billbee,
      * danach pflegt Billbee den Bestand. Bei FBA verwaltet Amazon die Menge.
@@ -181,6 +191,10 @@ class AmazonService
 
         $errors = collect($json['issues'] ?? [])->where('severity', 'ERROR')->pluck('message')->all();
         $accepted = ($json['status'] ?? '') === 'ACCEPTED' && ! $errors;
+
+        if ($accepted) {
+            $this->rememberAsin($variant, $asin);
+        }
 
         return Listing::updateOrCreate(['variant_id' => $variant->id, 'channel_id' => $channel->id], [
             'external_id' => $asin, 'sku' => $variant->sku, 'status' => $accepted ? 'pending' : 'error',

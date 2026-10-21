@@ -150,6 +150,20 @@ class Marketplaces extends Component
     public function amazonLookup(int $variantId, AmazonService $amazon): void
     {
         $variant = $this->product->variants()->findOrFail($variantId);
+        if (! $variant->active) {
+            $this->error = 'Die Variante ist inaktiv. Erst in den Varianten-Einstellungen aktivieren.';
+
+            return;
+        }
+        // Hinterlegte ASIN zuerst, die GTIN-Suche ergänzt nur
+        $stored = $variant->asin ? [['asin' => $variant->asin, 'title' => 'An der Variante hinterlegte ASIN', 'brand' => null, 'image' => null]] : [];
+        if ($stored && blank($variant->barcode)) {
+            $this->amazonMatches[$variantId] = $stored;
+            $this->amazonChoice[$variantId] = $variant->asin;
+            $this->error = null;
+
+            return;
+        }
         if (blank($variant->barcode)) {
             $this->error = 'Ohne GTIN lässt sich das Produkt bei Amazon nicht finden. Lege es als neues Produkt an (Befreiung von der GTIN in Seller Central beantragen).';
             $this->newProductFor = $variantId;
@@ -157,7 +171,8 @@ class Marketplaces extends Component
             return;
         }
         try {
-            $this->amazonMatches[$variantId] = $amazon->findByGtin($variant->barcode);
+            $found = collect($amazon->findByGtin($variant->barcode))->reject(fn ($m) => $m['asin'] === $variant->asin)->values()->all();
+            $this->amazonMatches[$variantId] = [...$stored, ...$found];
             $this->amazonChoice[$variantId] = $this->amazonMatches[$variantId][0]['asin'] ?? '';
             $this->error = null;
             if (! $this->amazonMatches[$variantId]) {
@@ -173,6 +188,11 @@ class Marketplaces extends Component
     {
         $variant = $this->product->variants()->findOrFail($variantId);
         $asin = $this->amazonChoice[$variantId] ?? '';
+        if (! $variant->active) {
+            $this->error = 'Die Variante ist inaktiv.';
+
+            return;
+        }
         if (! preg_match('/^[A-Z0-9]{10}$/', $asin)) {
             $this->error = 'Bitte ein Produkt auswählen.';
 

@@ -58,6 +58,9 @@ class Index extends Component
 
     public ?string $notice = null;
 
+    /** @var list<int> aufgeklappte Artikel, deren Varianten (Kinder) sichtbar sind */
+    public array $expanded = [];
+
     public ?int $bulkRuleId = null;
 
     /** @var list<int> */
@@ -72,6 +75,13 @@ class Index extends Component
     {
         $this->bulkRuleId = \App\Models\PriceRule::orderBy('name')->value('id');
         $this->bulkRuleChannels = \App\Models\Channel::active()->pluck('id')->all();
+    }
+
+    public function toggleExpand(int $id): void
+    {
+        $this->expanded = in_array($id, $this->expanded, true)
+            ? array_values(array_diff($this->expanded, [$id]))
+            : [...$this->expanded, $id];
     }
 
     public function updatedBulkAction(): void
@@ -243,7 +253,7 @@ class Index extends Component
     {
         $column = self::SORTS[$this->sort] ?? 'title';
         $products = $this->query()
-            ->with(['images' => fn ($q) => $q->where('position', 1), 'variants:id,product_id,sku,barcode,price,cost_net,stock'])
+            ->with(['images' => fn ($q) => $q->where('position', 1), 'variants:id,product_id,sku,barcode,asin,price,cost_net,stock,is_main,active,position,title,option1,option2,option3'])
             ->withCount('variants')
             ->withSum('variants', 'stock')
             ->withMin('variants', 'price')

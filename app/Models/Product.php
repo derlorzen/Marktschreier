@@ -42,12 +42,20 @@ class Product extends Model
             'title' => 'Titel', 'description_html' => 'Beschreibung', 'vendor' => 'Marke', 'product_type' => 'Produktart',
             'tags' => 'Tags', 'status' => 'Status', 'seo_title' => 'SEO-Titel', 'seo_description' => 'SEO-Beschreibung',
             'price' => 'Preis', 'compare_at_price' => 'Streichpreis', 'sku' => 'SKU', 'barcode' => 'GTIN/EAN',
+            'asin' => 'ASIN', 'model' => 'Modell', 'is_main' => 'Hauptvariante', 'active' => 'Aktiv',
+            'weight_g' => 'Gewicht (g)', 'length_mm' => 'Länge (mm)', 'width_mm' => 'Breite (mm)', 'height_mm' => 'Höhe (mm)',
         ][$field] ?? $field;
     }
 
     public function variants(): HasMany
     {
         return $this->hasMany(Variant::class)->orderBy('position');
+    }
+
+    /** Hauptvariante wie bei PlentyONE; ohne Markierung die erste. */
+    public function mainVariant(): ?Variant
+    {
+        return $this->variants->firstWhere('is_main', true) ?? $this->variants->first();
     }
 
     public function images(): HasMany
@@ -144,7 +152,8 @@ class Product extends Model
             $query->where(function (Builder $q) use ($like) {
                 $q->where('title', 'like', $like)
                     ->orWhere('vendor', 'like', $like)
-                    ->orWhereHas('variants', fn (Builder $v) => $v->where('sku', 'like', $like)->orWhere('barcode', 'like', $like));
+                    ->orWhereHas('variants', fn (Builder $v) => $v->where('sku', 'like', $like)->orWhere('barcode', 'like', $like)
+                        ->orWhere('asin', 'like', $like)->orWhere('model', 'like', $like));
             });
         }
 

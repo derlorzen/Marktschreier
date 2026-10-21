@@ -237,6 +237,8 @@ GQL;
     /** @param  list<array<string, mixed>>  $nodes */
     private function importImages(Product $product, array $nodes): void
     {
+        // Zuordnung zu Varianten gibt es nur in Marktschreier, sie bleibt beim Neuaufbau erhalten
+        $assigned = $product->images()->whereNotNull('variant_ids')->get()->mapWithKeys(fn ($i) => [($i->shopify_id ?? $i->url) => $i->variant_ids]);
         $product->images()->delete();
         $pos = 1;
         foreach ($nodes as $node) {
@@ -249,6 +251,7 @@ GQL;
                 'url' => $node['image']['url'],
                 'alt' => $node['alt'] ?? null,
                 'position' => $pos++,
+                'variant_ids' => $assigned[$node['id'] ?? $node['image']['url']] ?? null,
             ]);
         }
     }

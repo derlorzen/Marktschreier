@@ -22,7 +22,23 @@ class Variant extends Model
             'synced_snapshot' => 'array',
             'stock_locations' => 'array',
             'billbee_synced_at' => 'datetime',
+            'is_main' => 'boolean',
+            'active' => 'boolean',
+            'weight_g' => 'integer',
+            'length_mm' => 'integer',
+            'width_mm' => 'integer',
+            'height_mm' => 'integer',
         ];
+    }
+
+    protected static function booted(): void
+    {
+        // Jeder Artikel hat wie bei PlentyONE genau eine Hauptvariante; die erste wird es automatisch.
+        static::created(function (Variant $variant) {
+            if (! $variant->is_main && ! static::where('product_id', $variant->product_id)->where('is_main', true)->exists()) {
+                $variant->forceFill(['is_main' => true])->saveQuietly();
+            }
+        });
     }
 
     public static function pushableFields(): array
@@ -38,6 +54,41 @@ class Variant extends Model
     public function priceWatch(): \Illuminate\Database\Eloquent\Relations\HasOne
     {
         return $this->hasOne(PriceWatch::class);
+    }
+
+    /** Eigene Merkmale der Variante (ohne die geerbten des Artikels). */
+    public function attributeValues(): HasMany
+    {
+        return $this->hasMany(VariantAttribute::class)->orderBy('key');
+    }
+
+    /**
+     * Merkmale wie bei PlentyONE: Was die Variante nicht selbst hat, erbt sie vom Artikel.
+     *
+     * @return array<string, string|null> [Merkmal => Wert]
+     */
+    public function effectiveAttributes(): array
+    {
+        $product = $this->product;
+        $inherited = $product ? $product->attributeValues->pluck('value', 'key')->all() : [];
+        $own = $this->attributeValues->pluck('value', 'key')->all();
+        $all = array_replace($inherited, $own);
+        ksort($all, SORT_NATURAL | SORT_FLAG_CASE);
+
+        return $all;
+    }
+
+    /** Maße für die Anzeige, z. B. "90 × 65 × 20 mm". */
+    public function dimensionsLabel(): ?string
+    {
+        $dims = array_filter([$this->length_mm, $this->width_mm, $this->height_mm], fn ($d) => $d !== null);
+
+        return count($dims) === 3 ? implode(' × ', $dims).' mm' : null;
+    }
+
+    public static function validAsin(?string $asin): bool
+    {
+        return $asin !== null && preg_match('/^(B0[A-Z0-9]{8}|\d{9}[\dX])$/', $asin) === 1;
     }
 
     public function listings(): HasMany

@@ -48,10 +48,14 @@ return [
         'authorize_url' => 'https://eu.account.amazon.com/ap/oa',
         'token_url' => 'https://api.amazon.co.uk/auth/o2/token',
     ],
-    // Optional: Textvorschläge über die Claude API
+    // Optional: Textvorschläge über die Claude API oder ChatGPT (OpenAI)
     'ai' => [
+        // anthropic | openai; leer heißt: der Anbieter, für den ein Schlüssel da ist (Claude zuerst)
+        'provider' => env('AI_PROVIDER'),
         'api_key' => env('ANTHROPIC_API_KEY'),
         'model' => env('ANTHROPIC_MODEL', 'claude-sonnet-5-5'),
+        'openai_key' => env('OPENAI_API_KEY'),
+        'openai_model' => env('OPENAI_MODEL', 'gpt-6-luna'),
     ],
     'tiktok' => [
         'app_key' => env('TIKTOK_APP_KEY'),

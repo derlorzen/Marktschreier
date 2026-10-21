@@ -53,6 +53,48 @@ class ContentsTest extends TestCase
             && str_contains($r['messages'][0]['content'], 'Sleeves Matt 100 Stück') && ! str_contains($r['messages'][0]['content'], 'Kunde'));
     }
 
+    public function test_ai_suggestion_via_chatgpt(): void
+    {
+        Setting::put('ai.provider', 'openai');
+        Setting::put('ai.openai_key', 'sk-openai-test');
+        Setting::put('ai.api_key', 'sk-ant-test');
+        Http::fake(['api.openai.com/*' => Http::response(['output' => [
+            ['type' => 'reasoning', 'summary' => []],
+            ['type' => 'message', 'content' => [['type' => 'output_text', 'text' => '{"title": "Sleeves matt eBay", "bullets": [], "search_terms": "", "description_html": "<p>Matt</p>"}']]],
+        ]])]);
+
+        Livewire::test(Contents::class, ['product' => $this->product])
+            ->set('channelKey', 'ebay')->call('suggest')
+            ->assertSet('form.title', 'Sleeves matt eBay');
+
+        Http::assertSent(fn (Request $r) => $r->url() === 'https://api.openai.com/v1/responses'
+            && $r->hasHeader('Authorization', 'Bearer sk-openai-test') && $r['model'] === 'gpt-6-luna'
+            && $r['text']['format']['type'] === 'json_object' && str_contains($r['input'], 'eBay.de'));
+        Http::assertNotSent(fn (Request $r) => str_contains($r->url(), 'anthropic'));
+    }
+
+    public function test_provider_falls_back_to_the_one_with_a_key(): void
+    {
+        $ai = app(\App\Services\Content\AiWriter::class);
+        $this->assertFalse($ai->configured());
+        Setting::put('ai.openai_key', 'sk-openai-test');
+        $this->assertSame('openai', $ai->provider());
+        Setting::put('ai.provider', 'anthropic');
+        $this->assertNull($ai->provider(), 'Gewählter Anbieter ohne Schlüssel ist nicht eingerichtet.');
+    }
+
+    public function test_settings_store_openai_key_encrypted(): void
+    {
+        $this->actingAs(User::factory()->create(['role' => 'admin']));
+        Livewire::test(\App\Livewire\Settings\General::class)
+            ->set('aiProvider', 'openai')->set('openAiKey', 'sk-geheim')->set('openAiModel', 'gpt-6-sol')->call('save')
+            ->assertHasNoErrors()->assertSet('openAiKey', '');
+        $this->assertSame('sk-geheim', Setting::get('ai.openai_key'));
+        $this->assertNotSame('sk-geheim', \App\Models\Setting::where('key', 'ai.openai_key')->value('value'));
+        $this->assertSame('openai', Setting::get('ai.provider'));
+        $this->assertSame('gpt-6-sol', Setting::get('ai.openai_model'));
+    }
+
     public function test_title_limit_per_channel(): void
     {
         Livewire::test(Contents::class, ['product' => $this->product])

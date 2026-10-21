@@ -166,7 +166,13 @@
                         </td>
                         <td style="min-width:260px">
                             <a class="title-link" href="{{ route('products.edit', $product) }}" wire:navigate>{{ $product->title }}</a>
-                            <div class="muted small">{{ $product->product_type ?: 'Ohne Produktart' }} · {{ $product->variants_count }} {{ $product->variants_count === 1 ? 'Variante' : 'Varianten' }}</div>
+                            <div class="muted small">{{ $product->product_type ?: 'Ohne Produktart' }} ·
+                                @if ($product->variants_count > 1)
+                                    <button class="linkbtn small" wire:click="toggleExpand({{ $product->id }})" aria-expanded="{{ in_array($product->id, $expanded) ? 'true' : 'false' }}">{{ in_array($product->id, $expanded) ? '▾' : '▸' }} {{ $product->variants_count }} Varianten</button>
+                                @else
+                                    1 Variante
+                                @endif
+                            </div>
                         </td>
                         <td>{{ $product->vendor }}</td>
                         <td class="small">
@@ -182,6 +188,24 @@
                         <td><span @class(['badge', 'badge-ok' => $product->status === 'ACTIVE'])>{{ Format::shopifyStatus($product->status) }}</span></td>
                         <td><span class="badge {{ $syncClass }}" @if ($product->push_error) title="{{ $product->push_error }}" @endif>{{ $syncLabel }}</span></td>
                     </tr>
+                    @if (in_array($product->id, $expanded))
+                        @foreach ($product->variants as $v)
+                            <tr wire:key="pv{{ $v->id }}" class="child-row">
+                                <td></td><td></td>
+                                <td style="padding-left:28px">
+                                    <a href="{{ route('products.edit', ['product' => $product, 'tab' => 'varianten', 'variante' => $v->id]) }}" wire:navigate>{{ $v->label() }}</a>
+                                    @if ($v->is_main)<span class="badge badge-ok">Haupt</span>@endif
+                                    @if (! $v->active)<span class="badge badge-warn">inaktiv</span>@endif
+                                </td>
+                                <td class="small mono muted">{{ $v->asin ? 'ASIN '.$v->asin : '' }}</td>
+                                <td class="small"><span class="mono">{{ $v->sku ?: '–' }}</span><div class="mono muted">{{ $v->barcode }}</div></td>
+                                <td class="num">{{ Format::money($v->price) }}</td>
+                                <td class="num">{{ Format::money($v->cost_net) }}</td>
+                                <td class="num">{{ $v->stock === null ? '–' : number_format($v->stock, 0, ',', '.') }}</td>
+                                <td colspan="2"></td>
+                            </tr>
+                        @endforeach
+                    @endif
                 @empty
                     <tr><td colspan="10" class="empty">Keine Artikel gefunden. @if ($filtered)<button class="linkbtn" wire:click="resetFilters">Filter zurücksetzen</button>@endif</td></tr>
                 @endforelse

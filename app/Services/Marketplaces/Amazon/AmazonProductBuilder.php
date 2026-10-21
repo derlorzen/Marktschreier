@@ -125,8 +125,10 @@ class AmazonProductBuilder
         $product = $variant->product;
         $amazon = Channel::where('key', 'amazon')->first();
         $content = $amazon ? $product->contentFor($amazon) : null;
-        $attrs = $product->attributeValues->mapWithKeys(fn ($a) => [mb_strtolower($a->key) => $a->value]);
-        $image = $product->images()->orderBy('position')->value('url');
+        // Merkmale der Variante, Fehlendes erbt sie vom Artikel
+        $attrs = collect($variant->effectiveAttributes())->mapWithKeys(fn ($value, $key) => [mb_strtolower($key) => $value]);
+        $image = $product->images()->orderBy('position')->get()->first(fn ($i) => $i->isAssigned() && $i->belongsToVariant($variant->id))?->url
+            ?? $product->images()->orderBy('position')->value('url');
         $known = [
             'item_name' => $content?->effectiveTitle() ?? $product->title,
             'brand' => $product->vendor,
@@ -136,8 +138,8 @@ class AmazonProductBuilder
             'generic_keyword' => $content?->search_terms,
             'condition_type' => 'new_new',
             'country_of_origin' => $attrs['herkunftsland'] ?? null,
-            'model_number' => $variant->sku,
-            'part_number' => $variant->sku,
+            'model_number' => $variant->model ?: $variant->sku,
+            'part_number' => $variant->model ?: $variant->sku,
             'color' => $attrs['farbe'] ?? $variant->option1,
             'material' => $attrs['material'] ?? null,
             'number_of_items' => $attrs['anzahl'] ?? '1',

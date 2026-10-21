@@ -190,7 +190,8 @@ class EbayService
                 $value = $product->vendor;
             }
             if ($value === null && $key === 'herstellernummer') {
-                $value = $product->variants->first()?->sku;
+                $main = $product->mainVariant();
+                $value = $main?->model ?: $main?->sku;
             }
             $out[$a['name']] = (string) $value;
         }
@@ -214,7 +215,11 @@ class EbayService
             }
         }
         $channel = $this->channel();
-        $variants = $product->variants()->with('channelPrices')->get();
+        // Inaktive Varianten kommen nicht ins Angebot, wie bei PlentyONE
+        $variants = $product->variants()->where('active', true)->with('channelPrices')->get();
+        if ($variants->isEmpty()) {
+            throw new MarketplaceException('Der Artikel hat keine aktive Variante.');
+        }
         foreach ($variants as $v) {
             if (blank($v->sku)) {
                 throw new MarketplaceException('Jede Variante braucht eine SKU, sonst kann Billbee den Bestand nicht zuordnen.');

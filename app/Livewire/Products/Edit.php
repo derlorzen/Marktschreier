@@ -24,6 +24,10 @@ class Edit extends Component
     #[Url(except: 'stamm')]
     public string $tab = 'stamm';
 
+    /** Geöffnete Variante im Reiter Varianten, wie die Variantenansicht in PlentyONE. */
+    #[Url(as: 'variante')]
+    public ?int $openVariant = null;
+
     /** @var array<string, mixed> */
     public array $form = [];
 
@@ -53,6 +57,18 @@ class Edit extends Component
 
     public ?string $noticeType = null;
 
+    public function openVariantDetail(int $id): void
+    {
+        $this->openVariant = $this->openVariant === $id ? null : $id;
+        $this->tab = 'varianten';
+    }
+
+    #[\Livewire\Attributes\On('variant-saved')]
+    public function variantSaved(): void
+    {
+        $this->fillForm();
+    }
+
     public function mount(Product $product): void
     {
         $this->product = $product;
@@ -63,6 +79,9 @@ class Edit extends Component
     protected function fillForm(): void
     {
         $p = $this->product->fresh(['variants', 'attributeValues']);
+        if ($this->openVariant && ! $p->variants->contains('id', $this->openVariant)) {
+            $this->openVariant = null;
+        }
         $this->product = $p;
         $this->form = [
             'title' => $p->title,

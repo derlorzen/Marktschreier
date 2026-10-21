@@ -92,6 +92,37 @@ class PlentyTest extends TestCase
         Http::assertSent(fn (Request $r) => $r->hasHeader('Authorization', 'Bearer tok') && str_contains($r->url(), 'items?') && str_contains($r->url(), 'with=itemImages'));
     }
 
+    public function test_variation_details_and_asin_are_taken_over_without_overwriting_local_care(): void
+    {
+        $variation = $this->variation() + ['model' => 'RS-PRO', 'weightG' => 240, 'lengthMM' => 210, 'widthMM' => 60, 'heightMM' => 25,
+            'marketIdentNumbers' => [['type' => 'ePID', 'value' => '123'], ['type' => 'ASIN', 'value' => 'b07gpaul01']]];
+        $second = ['id' => 1001, 'itemId' => 103, 'isMain' => false, 'isActive' => false, 'number' => 'GP-RS-02', 'position' => 2,
+            'variationSalesPrices' => [], 'variationBarcodes' => [], 'variationAttributeValues' => [], 'stock' => []];
+        Http::fake([
+            'gp.example/rest/login' => Http::response(['access_token' => 'tok', 'token_type' => 'Bearer', 'expires_in' => 86400]),
+            'gp.example/rest/items/manufacturers*' => Http::response($this->page([['id' => 1, 'name' => 'Gartenpaul']])),
+            // Nebenvariante kommt zuerst, PlentyONE bestimmt trotzdem die Hauptvariante
+            'gp.example/rest/items/variations*' => Http::response($this->page([$second, $variation])),
+            'gp.example/rest/items?*' => Http::response($this->page([$this->item()])),
+        ]);
+        app(PlentyImporter::class)->importItems(true);
+
+        $main = \App\Models\Variant::where('plenty_variation_id', 1000)->sole();
+        $this->assertSame('B07GPAUL01', $main->asin);
+        $this->assertSame('RS-PRO', $main->model);
+        $this->assertSame('210 × 60 × 25 mm', $main->dimensionsLabel());
+        $this->assertSame(240, $main->weight_g);
+        $this->assertTrue($main->is_main);
+        $other = \App\Models\Variant::where('plenty_variation_id', 1001)->sole();
+        $this->assertFalse($other->is_main);
+        $this->assertFalse($other->active);
+        Http::assertSent(fn (Request $r) => str_contains(urldecode($r->url()), 'marketIdentNumbers'));
+
+        app(ProductEditor::class)->update($main->product, [], [$main->id => ['model' => 'Eigene Pflege']]);
+        app(PlentyImporter::class)->importItems(true);
+        $this->assertSame('Eigene Pflege', $main->fresh()->model);
+    }
+
     public function test_local_edits_survive_reimport_and_remote_changes_apply(): void
     {
         $this->fakePlenty($this->item(), $this->variation());

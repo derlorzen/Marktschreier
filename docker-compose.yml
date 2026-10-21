@@ -44,6 +44,9 @@ x-app: &app
     TIKTOK_APP_KEY: ${TIKTOK_APP_KEY:-}
     TIKTOK_APP_SECRET: ${TIKTOK_APP_SECRET:-}
     TIKTOK_SERVICE_ID: ${TIKTOK_SERVICE_ID:-}
+    AI_PROVIDER: ${AI_PROVIDER:-}
+    ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
+    OPENAI_API_KEY: ${OPENAI_API_KEY:-}
   volumes:
     - backups:/var/www/html/storage/app/backups
   depends_on:

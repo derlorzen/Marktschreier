@@ -97,6 +97,82 @@ class ProductEditor
         return true;
     }
 
+    /** Hauptvariante festlegen, wie bei PlentyONE genau eine je Artikel. */
+    public function setMainVariant(Product $product, Variant $variant, ?int $userId = null): bool
+    {
+        if ($variant->product_id !== $product->id || $variant->is_main) {
+            return false;
+        }
+        DB::transaction(function () use ($product, $variant, $userId) {
+            $old = $product->variants()->where('is_main', true)->first();
+            $product->variants()->where('is_main', true)->update(['is_main' => false]);
+            $variant->forceFill(['is_main' => true])->save();
+            ChangeLog::record($product, 'is_main', $old?->label(), $variant->label(), 'user', $variant, $userId);
+        });
+        $product->unsetRelation('variants');
+
+        return true;
+    }
+
+    /**
+     * Eigene Merkmale einer Variante setzen. Ein leerer Wert entfernt das eigene Merkmal,
+     * dann gilt wieder der Wert vom Artikel.
+     *
+     * @param  array<string, string|null>  $values
+     */
+    public function setVariantAttributes(Variant $variant, array $values, ?int $userId = null): int
+    {
+        return DB::transaction(function () use ($variant, $values, $userId) {
+            $count = 0;
+            $existing = $variant->attributeValues()->get()->keyBy('key');
+            foreach ($values as $key => $value) {
+                $key = trim((string) $key);
+                $value = trim((string) $value);
+                $old = $existing->get($key);
+                if ($key === '' || ($old && (string) $old->value === $value) || (! $old && $value === '')) {
+                    continue;
+                }
+                if ($value === '') {
+                    $old->delete();
+                } elseif ($old) {
+                    $old->update(['value' => $value]);
+                } else {
+                    $variant->attributeValues()->create(['key' => $key, 'value' => $value]);
+                }
+                ChangeLog::record($variant->product, 'Merkmal: '.$key, $old?->value, $value === '' ? null : $value, 'user', $variant, $userId);
+                $count++;
+            }
+            $variant->unsetRelation('attributeValues');
+
+            return $count;
+        });
+    }
+
+    /**
+     * Bilder einer Variante zuordnen. Nicht gewählte Bilder, die bisher nur für bestimmte Varianten galten,
+     * verlieren diese Variante; Bilder ohne Zuordnung bleiben für alle sichtbar.
+     *
+     * @param  list<int>  $imageIds
+     */
+    public function setVariantImages(Variant $variant, array $imageIds, ?int $userId = null): int
+    {
+        $count = 0;
+        foreach ($variant->product->images()->get() as $image) {
+            $ids = $image->variant_ids ?? [];
+            $want = in_array($image->id, $imageIds, true);
+            $has = in_array($variant->id, $ids, true);
+            if ($want === $has) {
+                continue;
+            }
+            $ids = $want ? [...$ids, $variant->id] : array_values(array_diff($ids, [$variant->id]));
+            $image->update(['variant_ids' => $ids ?: null]);
+            ChangeLog::record($variant->product, 'Bild '.$image->position, $has ? 'zugeordnet' : null, $want ? 'zugeordnet' : null, 'user', $variant, $userId);
+            $count++;
+        }
+
+        return $count;
+    }
+
     private function apply(Product $product, Product|Variant $model, string $field, mixed $value, ?int $userId): int
     {
         $class = $model::class;

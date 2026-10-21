@@ -134,11 +134,11 @@
             </div>
 
         @elseif ($tab === 'varianten')
-            <p class="muted small" style="margin-top:0">Preis, Streichpreis, SKU und GTIN pflegst du hier und überträgst sie zu Shopify. EK und Bestand kommen aus Billbee und sind nur zur Ansicht. Preise brutto, Marge netto bei {{ rtrim(rtrim(number_format($vat, 1, ',', ''), '0'), ',') }} % MwSt.</p>
+            <p class="muted small" style="margin-top:0">Der Artikel ist der Vater, die Varianten sind die Kinder. Preis, Streichpreis, SKU und GTIN pflegst du hier und überträgst sie zu Shopify. Mit Klick auf eine Variante öffnest du ihre Einstellungen, Merkmale, Bilder und Marktplätze. EK und Bestand kommen aus Billbee und sind nur zur Ansicht. Preise brutto, Marge netto bei {{ rtrim(rtrim(number_format($vat, 1, ',', ''), '0'), ',') }} % MwSt.</p>
             <div class="table-wrap">
             <table class="list">
                 <thead><tr>
-                    <th>Variante</th><th>SKU</th><th>GTIN/EAN</th><th class="num">Preis</th><th class="num">Streichpreis</th>
+                    <th>Variante</th><th>SKU</th><th>GTIN/EAN</th><th>ASIN</th><th class="num">Preis</th><th class="num">Streichpreis</th>
                     <th class="num">EK netto</th><th class="num">Marge</th><th class="num">Bestand</th>
                 </tr></thead>
                 <tbody>
@@ -147,12 +147,20 @@
                         $m = $v->marginNet($vat);
                         $net = (float) $v->price / (1 + $vat / 100);
                     @endphp
-                    <tr wire:key="v{{ $v->id }}">
-                        <td class="nowrap"><strong>{{ $v->label() }}</strong>@if (! $v->billbee_id)<div><span class="badge badge-warn" title="Keine passende SKU/GTIN in Billbee gefunden">nicht in Billbee</span></div>@endif</td>
+                    <tr wire:key="v{{ $v->id }}" @class(['is-selected' => $openVariant === $v->id])>
+                        <td class="nowrap">
+                            <button class="linkbtn" style="font-weight:600" wire:click="openVariantDetail({{ $v->id }})" aria-expanded="{{ $openVariant === $v->id ? 'true' : 'false' }}">{{ $v->label() }}</button>
+                            <div class="row" style="gap:4px;margin-top:2px">
+                                @if ($v->is_main)<span class="badge badge-ok">Hauptvariante</span>@endif
+                                @if (! $v->active)<span class="badge badge-warn">inaktiv</span>@endif
+                                @if (! $v->billbee_id)<span class="badge badge-warn" title="Keine passende SKU/GTIN in Billbee gefunden">nicht in Billbee</span>@endif
+                            </div>
+                        </td>
                         <td style="min-width:150px"><input @class(['input input-sm mono', 'is-changed' => $vChanged($v->id, 'sku')]) wire:model="variants.{{ $v->id }}.sku" aria-label="SKU {{ $v->label() }}">
                             @error("variants.$v->id.sku") <div class="error">{{ $message }}</div> @enderror</td>
                         <td style="min-width:160px"><input @class(['input input-sm mono', 'is-changed' => $vChanged($v->id, 'barcode')]) wire:model="variants.{{ $v->id }}.barcode" inputmode="numeric" aria-label="GTIN {{ $v->label() }}">
                             @error("variants.$v->id.barcode") <div class="error">{{ $message }}</div> @enderror</td>
+                        <td class="mono small nowrap">@if ($v->asin)<a href="https://www.amazon.de/dp/{{ $v->asin }}" target="_blank" rel="noopener">{{ $v->asin }}</a>@else<span class="muted">–</span>@endif</td>
                         <td style="min-width:110px"><input @class(['input input-sm num', 'is-changed' => $vChanged($v->id, 'price')]) wire:model="variants.{{ $v->id }}.price" inputmode="decimal" aria-label="Preis {{ $v->label() }}">
                             @error("variants.$v->id.price") <div class="error">{{ $message }}</div> @enderror</td>
                         <td style="min-width:110px"><input @class(['input input-sm num', 'is-changed' => $vChanged($v->id, 'compare_at_price')]) wire:model="variants.{{ $v->id }}.compare_at_price" inputmode="decimal" placeholder="keiner" aria-label="Streichpreis {{ $v->label() }}">
@@ -171,6 +179,9 @@
             </table>
             </div>
             <p class="muted small">Marge und EK beziehen sich auf den gespeicherten Preis.</p>
+            @if ($openVariant)
+                <livewire:products.variant-detail :product="$product" :variant-id="$openVariant" :key="'vd'.$openVariant" />
+            @endif
             @if ($product->shopify_id && collect($product->options ?? [])->reject(fn ($o) => in_array($o['name'], ['Title', 'Titel']))->isNotEmpty())
                 @if (! $showAddVariant)
                     <button class="btn btn-sm" wire:click="$set('showAddVariant', true)">Variante hinzufügen</button>
@@ -318,7 +329,7 @@
                     @foreach ($logs as $log)
                         <tr>
                             <td class="nowrap small">{{ $log->created_at->timezone('Europe/Berlin')->format('d.m.Y H:i') }}</td>
-                            <td class="nowrap small">{{ ['user' => $log->user?->name ?? 'Benutzer', 'import' => 'Shopify-Import', 'push' => 'Zu Shopify übertragen', 'billbee' => 'Billbee', 'rule' => 'Preisregel'][$log->source] ?? $log->source }}</td>
+                            <td class="nowrap small">{{ ['user' => $log->user?->name ?? 'Benutzer', 'import' => 'Shopify-Import', 'push' => 'Zu Shopify übertragen', 'billbee' => 'Billbee', 'rule' => 'Preisregel', 'amazon' => 'Amazon'][$log->source] ?? $log->source }}</td>
                             <td class="small">{{ Product::fieldLabel($log->field) }}@if ($log->variant) <span class="muted">({{ $log->variant->label() }})</span>@endif</td>
                             <td class="small muted" style="max-width:280px;overflow-wrap:anywhere">{{ \Illuminate\Support\Str::limit(strip_tags((string) $log->old_value), 140) ?: 'leer' }}</td>
                             <td class="small" style="max-width:280px;overflow-wrap:anywhere">{{ \Illuminate\Support\Str::limit(strip_tags((string) $log->new_value), 140) ?: 'leer' }}</td>
